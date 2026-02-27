@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, Wallet, TrendingUp, Receipt, ShieldCheck, ChevronRight, Target } from 'lucide-react';
+import { LayoutDashboard, Wallet, TrendingUp, Receipt, Users, Zap, User, Target } from 'lucide-react';
 
 const Sidebar = ({ isOpen, activeMenu, onMenuChange }) => {
   if (!isOpen) return null;
@@ -12,10 +11,13 @@ const Sidebar = ({ isOpen, activeMenu, onMenuChange }) => {
 
   const menuItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { icon: <Receipt size={20} />, label: 'Expenses' },
     { icon: <Target size={20} />, label: 'Goals' },
-    { icon: <Wallet size={20} />, label: 'Accounts' },
     { icon: <TrendingUp size={20} />, label: 'Investments' },
-    { icon: <Receipt size={20} />, label: 'Transactions' },
+    { icon: <Wallet size={20} />, label: 'Loans' },
+    { icon: <Users size={20} />, label: 'Family' },
+    { icon: <Zap size={20} />, label: 'AI' },
+    { icon: <User size={20} />, label: 'Profile' },
   ];
 
   return (

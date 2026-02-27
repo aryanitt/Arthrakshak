@@ -24,11 +24,6 @@ const TopBar = ({ onToggleSidebar, onNavigate, isSidebarOpen, showProfile = true
         <div className="bar-left">
           {/* Search Removed by Strategy Update */}
           <div className="search-placeholder-spacer" style={{ flex: 1 }}></div>
-
-          <div className="greeting-v2">
-            <h1>Welcome back, Rohan 👋</h1>
-            <p>Your treasury is optimal.</p>
-          </div>
         </div>
 
         <div className="actions-v2">
@@ -233,20 +228,6 @@ const TopBar = ({ onToggleSidebar, onNavigate, isSidebarOpen, showProfile = true
           border-color: var(--primary-blue);
           color: var(--primary-blue);
           transform: translateY(-1px);
-        }
-        
-        .greeting-v2 h1 {
-          font-size: 22px;
-          font-weight: 800;
-          color: #0F172A;
-          letter-spacing: -0.5px;
-        }
-        
-        .greeting-v2 p {
-          color: var(--text-muted);
-          font-size: 13px;
-          font-weight: 500;
-          margin-top: 1px;
         }
         
         .actions-v2 {

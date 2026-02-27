@@ -1,450 +1,599 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {
-    Target, History, User, Info, Plus, Home,
-    Palmtree, Check, X, Calculator, TrendingUp,
-    Zap, Trash2, Calendar as CalendarIcon,
-    ShieldCheck, Wallet, FileText, Download, Search
-} from 'lucide-react';
 import * as XLSX from 'xlsx';
+import {
+    PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip
+} from 'recharts';
+import {
+    Target, Plus, Home, Trash2, Edit2,
+    Zap, Bot, TrendingUp, GraduationCap,
+    Plane, Car, Landmark, Star, ShieldAlert,
+    AlertTriangle, Lock, CheckCircle2, Circle,
+    Mic, X, Flag, Calendar, Shield, Wallet,
+    ArrowUpRight, Sparkles, ChevronRight, Download, Search
+} from 'lucide-react';
+
+import AiInsightsPanel from './AiInsightsPanel';
 
 const API_BASE_URL = 'http://127.0.0.1:5000/api';
 
+const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
+const fmtCr = (n) => {
+    n = Number(n || 0);
+    if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
+    if (n >= 100000) return `₹${(n / 100000).toFixed(0)}L`;
+    return `₹${fmt(n)}`;
+};
+
+const getMonthsRemaining = (targetDate) => {
+    const today = new Date();
+    const target = new Date(targetDate);
+    const months = (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth());
+    return Math.max(1, months);
+};
+
+const timeLeft = (targetDate) => {
+    const months = getMonthsRemaining(targetDate);
+    if (months >= 12) {
+        const yrs = Math.floor(months / 12);
+        const mo = months % 12;
+        return mo > 0 ? `${yrs}y ${mo}m left` : `${yrs}yr left`;
+    }
+    return `${months}mo left`;
+};
+
+const CATEGORY_META = {
+    'real-estate': { icon: Home, color: '#818CF8', gradient: 'linear-gradient(135deg,#6366F1,#818CF8)', label: 'Real Estate' },
+    'lifestyle': { icon: Plane, color: '#FBB040', gradient: 'linear-gradient(135deg,#F59E0B,#FCD34D)', label: 'Lifestyle' },
+    'education': { icon: GraduationCap, color: '#A78BFA', gradient: 'linear-gradient(135deg,#8B5CF6,#A78BFA)', label: 'Education' },
+    'retirement': { icon: Landmark, color: '#34D399', gradient: 'linear-gradient(135deg,#10B981,#34D399)', label: 'Retirement' },
+    'vehicle': { icon: Car, color: '#FB923C', gradient: 'linear-gradient(135deg,#F97316,#FB923C)', label: 'Vehicle' },
+    'other': { icon: Star, color: '#60A5FA', gradient: 'linear-gradient(135deg,#0076F5,#60A5FA)', label: 'General' },
+    'apartment': { icon: Home, color: '#818CF8', gradient: 'linear-gradient(135deg,#6366F1,#818CF8)', label: 'Real Estate' },
+};
+
+const getCatMeta = (cat) => CATEGORY_META[cat] || CATEGORY_META['other'];
+
+// ── Donut Ring ────────────────────────────────────────────────────────────────
+const DonutRing = ({ pct, size = 72, stroke = 7, color = '#0076F5' }) => {
+    const r = (size - stroke) / 2;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (pct / 100) * circ;
+    return (
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} />
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+                strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+        </svg>
+    );
+};
+
+// ── Health Ring ───────────────────────────────────────────────────────────────
+const HealthRing = ({ score, color = "#FF4D4D" }) => {
+    const r = 32; const stroke = 6; const size = 76;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (Math.min(100, score) / 100) * circ;
+    return (
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width={size} height={size} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1E293B" strokeWidth={stroke} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+                    strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+            </svg>
+            <span style={{ fontSize: 20, fontWeight: 800, color: color, zIndex: 1 }}>{score}</span>
+        </div>
+    );
+};
+
+// ── Income Allocation Ring ──────────────────────────────────────────────────
+const IncomeAllocationRing = ({ pct, amount }) => {
+    const r = 32; const stroke = 6; const size = 76;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (Math.min(100, pct) / 100) * circ;
+    return (
+        <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width={size} height={size} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} />
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FBB040" strokeWidth={stroke}
+                    strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+            </svg>
+            <div style={{ zIndex: 1, textAlign: 'center' }}>
+                <span style={{ fontSize: 18, fontWeight: 800, color: '#FBB040', display: 'block', lineHeight: 1 }}>{Math.round(pct)}%</span>
+            </div>
+        </div>
+    );
+};
+
+// ── Modal Donut ───────────────────────────────────────────────────────────────
+const ModalDonut = ({ pct }) => {
+    const size = 130, stroke = 12, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+    const offset = circ - (pct / 100) * circ;
+    return (
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 130, height: 130 }}>
+            <svg width={130} height={130} style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                <circle cx={65} cy={65} r={r} fill="none" stroke="#EDF2F7" strokeWidth={stroke} />
+                <circle cx={65} cy={65} r={r} fill="none" stroke="#0076F5" strokeWidth={stroke}
+                    strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+            </svg>
+            <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A' }}>0%</div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: '#94A3B8', letterSpacing: 0.5 }}>INITIAL PHASE</div>
+            </div>
+        </div>
+    );
+};
+
+
+// ── Main Component ────────────────────────────────────────────────────────────
+const CategoryDistributionPie = ({ data }) => {
+    const COLORS = ['#0076F5', '#10B981', '#FBB040', '#8B5CF6', '#EC4899', '#64748B'];
+
+    return (
+        <div style={{ width: 84, height: 84, position: 'relative' }}>
+            <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                        data={data}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={28}
+                        outerRadius={38}
+                        paddingAngle={0}
+                        dataKey="value"
+                        stroke="#fff"
+                        strokeWidth={1.5}
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <RechartsTooltip
+                        contentStyle={{
+                            fontSize: '10px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            padding: '4px 8px'
+                        }}
+                        formatter={(value) => [`₹${value}`, 'Commitment']}
+                    />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
 const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
     const [goals, setGoals] = useState([]);
-    const [searchQuery, setSearchQuery] = useState(''); // Local search state
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [strategicMode, setStrategicMode] = useState(true);
     const [newGoal, setNewGoal] = useState({
-        title: '',
-        targetAmount: '',
+        title: '', targetAmount: '500000', targetDate: '',
+        priority: 'High Priority', category: 'Short Term (< 1 Year)',
         startDate: new Date().toISOString().split('T')[0],
-        targetDate: '',
-        category: 'apartment'
     });
+    const [paymentAmounts, setPaymentAmounts] = useState({});
+    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+    const [payGoal, setPayGoal] = useState(null);
+    const [payAmount, setPayAmount] = useState('');
+    const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
-    const [emiCalc, setEmiCalc] = useState({
-        targetAmount: 2500000,
-        interest: 8.5,
-        tenure: 5
-    });
-
-    useEffect(() => {
-        fetchGoals();
-    }, []);
+    useEffect(() => { fetchGoals(); }, []);
 
     const fetchGoals = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/goals`);
-            setGoals(response.data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching goals:', error);
-            setLoading(false);
-        }
+        try { const res = await axios.get(`${API_BASE_URL}/goals`); setGoals(res.data); }
+        catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
     const handleAddGoal = async (e) => {
         e.preventDefault();
+        const catMap = {
+            'Short Term (< 1 Year)': 'lifestyle', 'Medium Term (1-3 Years)': 'other',
+            'Long Term (3+ Years)': 'real-estate', 'Education': 'education', 'Retirement': 'retirement',
+        };
         try {
-            const goalToSave = {
-                ...newGoal,
-                targetAmount: Number(newGoal.targetAmount)
-            };
-            const response = await axios.post(`${API_BASE_URL}/goals`, goalToSave);
-            setGoals([...goals, response.data]);
+            const res = await axios.post(`${API_BASE_URL}/goals`, {
+                title: newGoal.title, targetAmount: Number(newGoal.targetAmount),
+                targetDate: newGoal.targetDate, startDate: newGoal.startDate,
+                category: catMap[newGoal.category] || 'other',
+            });
+            setGoals([...goals, res.data]);
             setIsModalOpen(false);
-            setNewGoal({ title: '', targetAmount: '', targetDate: '', category: 'apartment' });
-            alert('Strategic Goal Architecture Created!');
-        } catch (error) {
-            console.error('Error adding goal:', error);
-            alert(`Architecture Failure: ${error.response?.data?.message || error.message}`);
-        }
+            setNewGoal({
+                title: '', targetAmount: '500000', targetDate: '', priority: 'High Priority',
+                category: 'Short Term (< 1 Year)', startDate: new Date().toISOString().split('T')[0]
+            });
+        } catch (e) { alert(`Error: ${e.response?.data?.message || e.message}`); }
     };
+
+    const [deletingId, setDeletingId] = useState(null);
 
     const handleDeleteGoal = async (id) => {
         try {
             await axios.delete(`${API_BASE_URL}/goals/${id}`);
             setGoals(goals.filter(g => g._id !== id));
-        } catch (error) {
-            console.error('Error deleting goal:', error);
+            setDeletingId(null);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete goal. Please try again.");
         }
     };
 
-    const getMonthsRemaining = (targetDate) => {
-        const today = new Date();
-        const target = new Date(targetDate);
-        const months = (target.getFullYear() - today.getFullYear()) * 12 + (target.getMonth() - today.getMonth());
-        return Math.max(1, months);
-    };
+    const handleExportReport = () => {
+        const reportData = [];
+        goals.forEach(goal => {
+            const contributions = goal.contributions || [];
+            contributions.forEach(c => {
+                reportData.push({
+                    'Goal Name': String(goal.title || 'Untitled'),
+                    'Category': String(goal.category || 'General'),
+                    'Payment Month': String(c.month || 'N/A'),
+                    'Amount (₹)': Number(c.amount) || 0,
+                    'Status': String(c.status || 'Paid'),
+                    'Payment Date': c.paidAt ? new Date(c.paidAt).toLocaleDateString() : 'N/A',
+                    'Exact Timestamp': c.paidAt ? new Date(c.paidAt).toLocaleTimeString() : 'N/A'
+                });
+            });
+        });
 
-    const getTotalMonths = (startDate, targetDate) => {
-        const start = new Date(startDate);
-        const target = new Date(targetDate);
-        const months = (target.getFullYear() - start.getFullYear()) * 12 + (target.getMonth() - start.getMonth());
-        return Math.max(1, months);
+        if (reportData.length === 0) {
+            if (goals.length === 0) {
+                alert("No goals found to export. Please create a goal first.");
+                return;
+            }
+            // Fallback: Export general goals overview if no payments exist
+            goals.forEach(goal => {
+                reportData.push({
+                    'Goal Name': String(goal.title || 'Untitled'),
+                    'Category': String(goal.category || 'General'),
+                    'Target Amount (₹)': Number(goal.targetAmount) || 0,
+                    'Saved Amount (₹)': Number(goal.currentBalance) || 0,
+                    'Status': String(goal.status || 'Active'),
+                    'Start Date': goal.startDate ? new Date(goal.startDate).toLocaleDateString() : 'N/A',
+                    'Target Date': goal.targetDate ? new Date(goal.targetDate).toLocaleDateString() : 'N/A'
+                });
+            });
+        }
+
+        try {
+            const ws = XLSX.utils.json_to_sheet(reportData);
+            const wscols = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }];
+            ws['!cols'] = wscols;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Goals Report");
+
+            // Using a more robust download method
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+            const fileName = `Arth_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const url = window.URL.createObjectURL(data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert("Report generated successfully! Please check your downloads folder.");
+        } catch (err) {
+            console.error("XLSX Export Error:", err);
+            alert("Failed to generate report. Details logged to console.");
+        }
     };
 
     const getRecommendedPayment = (goal) => {
-        const totalMonths = getTotalMonths(goal.startDate || goal.createdAt, goal.targetDate);
-        return Math.ceil(goal.targetAmount / totalMonths);
+        const months = getMonthsRemaining(goal.targetDate);
+        const remaining = (Number(goal.targetAmount) || 0) - (Number(goal.currentBalance) || 0);
+        return Math.ceil(remaining / Math.max(1, months));
     };
 
-    const handleMarkAsPaid = async (goal, customAmount, monthOverride) => {
-        const today = new Date();
-        const currentMonthIdx = today.getMonth();
-        const currentYear = today.getFullYear();
+    const handleMarkAsPaid = async () => {
+        if (!payGoal) return;
         const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
-        const month = monthOverride || months[currentMonthIdx];
-        const monthIdx = months.indexOf(month);
-
-        // Validation: Cannot pay for future months or months before start date
-        // Validation: Cannot pay for future months or months before start date
-        // Robust Date Parsing (Avoid Timezone Shift)
-        let startYear = currentYear, startMonthIdx = 0;
-        if (goal.startDate) {
-            const parts = goal.startDate.split('-');
-            startYear = parseInt(parts[0]);
-            startMonthIdx = parseInt(parts[1]) - 1; // 0-indexed
-        }
-
-        if (monthOverride) {
-            if (monthIdx !== currentMonthIdx) {
-                alert(`Constraint Violation: You can only inject funds for the current month (${months[currentMonthIdx]}).`);
-                return;
-            }
-            if (currentYear < startYear || (currentYear === startYear && monthIdx < startMonthIdx)) {
-                alert(`Constraint Violation: Cannot contribute before the Strategic Starting Date.`);
-                return;
-            }
-        }
-
-        const amount = Number(customAmount) || getRecommendedPayment(goal);
-        const url = `${API_BASE_URL}/goals/${goal._id}/pay`;
-
+        const dateObj = new Date(payDate);
+        const month = months[dateObj.getMonth()];
+        const pay = Number(payAmount) || getRecommendedPayment(payGoal);
         try {
-            const response = await axios.put(url, { amount, month });
-            setGoals(goals.map(g => g._id === goal._id ? response.data : g));
-            if (onPayment) onPayment(amount);
-
-            // Auto-close calendar and visual feedback
-            toggleTracker(goal._id);
-            alert(`Strategy synchronized! ${month} EMI contribution of ₹${amount.toLocaleString()} confirmed.`);
-        } catch (error) {
-            console.error('Payment failed:', error);
-            alert(`Sync Error: ${error.response?.data?.message || error.message}`);
-        }
+            const res = await axios.put(`${API_BASE_URL}/goals/${payGoal._id}/pay`, { amount: pay, month, date: payDate });
+            setGoals(goals.map(g => g._id === payGoal._id ? res.data : g));
+            if (onPayment) onPayment(pay);
+            setIsPayModalOpen(false);
+            setPayGoal(null);
+        } catch (e) { alert(`Payment error: ${e.response?.data?.message || e.message}`); }
     };
 
-    const [visibleTrackers, setVisibleTrackers] = useState({});
-    const toggleTracker = (goalId) => setVisibleTrackers(prev => ({ ...prev, [goalId]: !prev[goalId] }));
-
-    const [paymentAmounts, setPaymentAmounts] = useState({});
-    const handleAmountChange = (goalId, val) => setPaymentAmounts({ ...paymentAmounts, [goalId]: val });
-
-    const getCategoryIcon = (cat) => {
-        switch (cat) {
-            case 'apartment': return <Home size={24} />;
-            case 'retirement': return <Palmtree size={24} />;
-            default: return <Target size={24} />;
-        }
+    const openPayModal = (goal) => {
+        setPayGoal(goal);
+        setPayAmount(getRecommendedPayment(goal));
+        setPayDate(new Date().toISOString().split('T')[0]);
+        setIsPayModalOpen(true);
     };
 
-    const handleDownloadReport = () => {
-        // Sheet 1: Overview
-        const overviewData = goals.map(goal => ({
-            'Goal Title': goal.title,
-            'Category': goal.category.charAt(0).toUpperCase() + goal.category.slice(1),
-            'Target Amount': goal.targetAmount,
-            'Current Balance': goal.currentBalance,
-            'Progress (%)': ((goal.currentBalance / goal.targetAmount) * 100).toFixed(2) + '%',
-            'Start Date': new Date(goal.startDate).toLocaleDateString(),
-            'Target Date': goal.targetDate
-        }));
+    const totalGoals = goals.length;
+    const completedGoals = goals.filter(g => ((g.currentBalance / g.targetAmount) * 100) >= 100).length;
+    const totalSaved = goals.reduce((a, g) => a + (Number(g.currentBalance) || 0), 0);
+    const totalTarget = goals.reduce((a, g) => a + (Number(g.targetAmount) || 0), 0);
+    const savingsPct = totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0;
+    const totalMonthlyEMI = goals.reduce((a, g) => a + getRecommendedPayment(g), 0);
+    const incomeUsedPct = (totalMonthlyEMI / monthlyIncome) * 100;
 
-        // Sheet 2: Payment History
-        const historyData = [];
-        goals.forEach(goal => {
-            if (goal.contributions && goal.contributions.length > 0) {
-                goal.contributions.forEach(c => {
-                    if (c.status === 'done') {
-                        historyData.push({
-                            'Goal Title': goal.title,
-                            'Category': goal.category,
-                            'Month': c.month,
-                            'Amount Paid': c.amount,
-                            'Payment Date': c.paidAt ? new Date(c.paidAt).toLocaleDateString() : 'N/A',
-                            'Payment Time': c.paidAt ? new Date(c.paidAt).toLocaleTimeString() : 'N/A'
-                        });
-                    }
-                });
-            }
-        });
+    const categoryDataMap = {};
+    goals.forEach(g => {
+        const cat = g.category || 'Other';
+        const emi = getRecommendedPayment(g) || 1000;
+        categoryDataMap[cat] = (categoryDataMap[cat] || 0) + emi;
+    });
 
-        const workbook = XLSX.utils.book_new();
+    const categoryData = Object.keys(categoryDataMap).map(key => ({
+        name: key,
+        value: categoryDataMap[key]
+    })).sort((a, b) => b.value - a.value);
 
-        const wsOverview = XLSX.utils.json_to_sheet(overviewData);
-        XLSX.utils.book_append_sheet(workbook, wsOverview, 'Overview');
+    // Dynamic Health Score logic based on income utilization
+    let healthScore = 85;
+    let healthStatus = "Excellent";
+    let healthColor = "#10B981";
 
-        if (historyData.length > 0) {
-            const wsHistory = XLSX.utils.json_to_sheet(historyData);
-            XLSX.utils.book_append_sheet(workbook, wsHistory, 'Payment History');
+    if (totalGoals > 0) {
+        if (incomeUsedPct < 30) {
+            // Excellent range: 90 - 100
+            healthScore = Math.max(90, Math.round(100 - (incomeUsedPct / 3)));
+            healthStatus = "Excellent";
+            healthColor = "#10B981";
+        } else if (incomeUsedPct <= 60) {
+            // Good range: 65 - 85
+            healthScore = Math.round(85 - ((incomeUsedPct - 30) * 0.6));
+            healthStatus = "Good";
+            healthColor = "#FBB040";
+        } else {
+            // Critical range: 35 - 60
+            healthScore = Math.max(30, Math.round(60 - ((incomeUsedPct - 60) * 0.8)));
+            healthStatus = "Critical";
+            healthColor = "#EF4444";
         }
+    }
 
-        XLSX.writeFile(workbook, `Strategic_Goals_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    };
+    const modalMonths = newGoal.targetDate ? Math.max(1, getMonthsRemaining(newGoal.targetDate)) : 20;
+    const modalTarget = Number(newGoal.targetAmount) || 0;
+    const modalMonthly = modalTarget > 0 ? Math.ceil(modalTarget / modalMonths) : 25000;
+    const today = new Date();
+    const addMonths = (n) => { const d = new Date(today); d.setMonth(d.getMonth() + n); return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }); };
 
-    // Filter goals based on searchQuery
-    const filteredGoals = Array.isArray(goals) ? goals.filter(g =>
+    const filteredGoals = goals.filter(g =>
         g.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         g.category?.toLowerCase().includes(searchQuery.toLowerCase())
-    ) : [];
+    );
 
-    const calculateEMI = () => {
-        const P = emiCalc.targetAmount;
-        const R = (emiCalc.interest / 12) / 100;
-        const N = emiCalc.tenure * 12;
-        const emiValue = (P * R * Math.pow(1 + R, N)) / (Math.pow(1 + R, N) - 1);
-        const totalPayment = emiValue * N;
-        const totalInterestValue = totalPayment - P;
-        return { emi: Math.round(emiValue || 0), totalInterest: Math.round(totalInterestValue || 0) };
-    };
-
-    const { emi, totalInterest } = calculateEMI();
-
-    // Real-time calculations
-    const totalMonthlyRecommended = goals.reduce((acc, g) => acc + getRecommendedPayment(g), 0);
-    const totalSaved = goals.reduce((acc, g) => acc + (Number(g.currentBalance) || 0), 0);
-    const totalTarget = goals.reduce((acc, g) => acc + (Number(g.targetAmount) || 0), 0);
-    const overallProgress = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+    const suggestions = Array.from(new Set(goals.map(g => g.title))).filter(t =>
+        t.toLowerCase().includes(searchQuery.toLowerCase()) && searchQuery.length > 0
+    ).slice(0, 5);
 
     return (
-        <div className="strategic-goals-container">
-            <div className="dashboard-grid">
-                {/* Left Column (Main Content) */}
-                <div className="left-column">
-                    <div className="hero-allocation-card">
-                        <div className="hero-bg-pattern">
-                            <ShieldCheck className="bg-icon shield" size={240} strokeWidth={1} />
-                            <TrendingUp className="bg-icon trend" size={120} strokeWidth={1.5} />
-                            <Wallet className="bg-icon wallet" size={80} strokeWidth={1.5} />
+        <div className="sg-root">
+            {/* ── Hero Banner ── */}
+            <div className="sg-hero">
+                <div className="sg-hero-bg">
+                    <Shield className="sg-bg-icon sg-bg-shield" size={260} strokeWidth={0.8} />
+                    <Target className="sg-bg-icon sg-bg-target" size={140} strokeWidth={0.8} />
+                    <TrendingUp className="sg-bg-icon sg-bg-trend" size={90} strokeWidth={1} />
+                </div>
+                <div className="sg-hero-content">
+                    <div className="sg-hero-left">
+                        <div className="sg-hero-top">
+                            <div className="sg-hero-badge"><Target size={13} /> Goal Management</div>
                         </div>
-
-                        <div className="hero-main-content">
-                            <div className="hero-header-row">
-                                <div className="hero-label">
-                                    <span>Strategic Allocation Summary</span>
-                                    <TrendingUp size={18} className="eye-icon" />
-                                </div>
-                                <div className="premium-tag-v2">HEALTH: {overallProgress > 50 ? 'OPTIMAL' : 'PLANNING'}</div>
+                        <h1 className="sg-hero-title">Your Financial Goals <span className="sg-emoji">🎯</span></h1>
+                        <p className="sg-hero-sub">वित्तीय लक्ष्य • Track, manage and achieve your milestones</p>
+                        <div className="sg-hero-stats">
+                            <div className="sg-hero-stat">
+                                <span className="sg-hs-val">{String(totalGoals).padStart(2, '0')}</span>
+                                <span className="sg-hs-lbl">Active Goals</span>
                             </div>
-                            <div className="balance-fig">₹{totalMonthlyRecommended.toLocaleString()}.00</div>
-
-                            {/* Health Indicators */}
-                            <div className="health-indicators-row" style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
-                                <div className={`health-badge ${((totalMonthlyRecommended / monthlyIncome) * 100) < 20 ? 'safe' : ((totalMonthlyRecommended / monthlyIncome) * 100) < 40 ? 'moderate' : 'critical'}`}
-                                    style={{
-                                        padding: '6px 12px',
-                                        borderRadius: '8px',
-                                        fontSize: '11px',
-                                        fontWeight: '700',
-                                        background: ((totalMonthlyRecommended / monthlyIncome) * 100) < 20 ? 'rgba(34, 197, 94, 0.2)' : ((totalMonthlyRecommended / monthlyIncome) * 100) < 40 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                        color: ((totalMonthlyRecommended / monthlyIncome) * 100) < 20 ? '#4ADE80' : ((totalMonthlyRecommended / monthlyIncome) * 100) < 40 ? '#FDE047' : '#FCA5A5',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}>
-                                    {((totalMonthlyRecommended / monthlyIncome) * 100) < 20 ? <Check size={12} /> : ((totalMonthlyRecommended / monthlyIncome) * 100) < 40 ? <Info size={12} /> : <X size={12} />}
-                                    <span>
-                                        {((totalMonthlyRecommended / monthlyIncome) * 100) < 20 ? 'SAFE ZONE' : ((totalMonthlyRecommended / monthlyIncome) * 100) < 40 ? 'MODERATE USE' : 'CRITICAL LOAD'}
-                                    </span>
-                                </div>
-                                <div className="usage-stat" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center' }}>
-                                    Using {((totalMonthlyRecommended / monthlyIncome) * 100).toFixed(1)}% of Income
-                                </div>
+                            <div className="sg-hero-stat-div" />
+                            <div className="sg-hero-stat">
+                                <span className="sg-hs-val sg-hs-green">{String(completedGoals).padStart(2, '0')}</span>
+                                <span className="sg-hs-lbl">Completed</span>
                             </div>
-
-                            <div className="hero-subs">
-                                <div className="hero-sub-card">
-                                    <span className="sub-label">Allocated Goals Progress</span>
-                                    <div className="sub-value">
-                                        <span className="val">{overallProgress}%</span>
-                                        <span className={`pct-tag ${overallProgress > 70 ? 'green' : 'blue'}`}>
-                                            {overallProgress > 70 ? 'Optimal' : 'Growing'}
-                                        </span>
-                                    </div>
-                                    <div className="sub-detail">Total Target: ₹{totalTarget.toLocaleString()}</div>
-                                </div>
-                                <button className="hero-sub-card projection-trigger" onClick={() => alert('AI Projection Engine Initializing...')}>
-                                    <span className="sub-label">Strategic Forecast</span>
-                                    <div className="sub-value">
-                                        <span className="val">Plan Ahead</span>
-                                        <div className="p-icon-box-v2"><Zap size={18} /></div>
-                                    </div>
-                                    <div className="sub-detail">AI-Powered Forecasting</div>
-                                </button>
+                            <div className="sg-hero-stat-div" />
+                            <div className="sg-hero-stat">
+                                <span className="sg-hs-val">{fmtCr(totalSaved)}</span>
+                                <span className="sg-hs-lbl">Total Saved</span>
                             </div>
                         </div>
                     </div>
-
-                    <div className="strategic-actions-row">
-                        <div className="insight-pill">
-                            <Zap size={14} />
-                            <span>AI INSIGHT: You are on track to hit 'House' 3 months early.</span>
-                        </div>
-                        <div className="action-group-v2">
-                            <div className="local-search-wrapper">
-                                <Search size={16} className="local-search-icon" />
-                                <input
-                                    type="text"
-                                    placeholder="Search goals..."
-                                    className="local-search-input"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <button className="premium-secondary-btn" onClick={handleDownloadReport}>
-                                <Download size={16} />
-                                <span>Export Analysis</span>
-                            </button>
-                            <button className="new-goal-btn-premium" onClick={() => setIsModalOpen(true)}>
-                                <div className="btn-icon-wrapper">
-                                    <Plus size={20} strokeWidth={3} />
+                    <div className="sg-hero-right">
+                        <button className="sg-create-hero-btn" onClick={() => setIsModalOpen(true)}>
+                            <Plus size={16} strokeWidth={3} /> Create New Goal
+                        </button>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'nowrap', justifyContent: 'flex-end', alignItems: 'stretch' }}>
+                            {categoryData.length > 0 && (
+                                <div className="sg-hero-ring-card dist">
+                                    <div style={{ flexShrink: 0 }}>
+                                        <CategoryDistributionPie data={categoryData} />
+                                    </div>
+                                    <div className="sg-dist-legend">
+                                        <div className="sg-ring-label" style={{ marginBottom: '6px' }}>CATEGORIES</div>
+                                        {categoryData.slice(0, 3).map((cat, i) => {
+                                            const pct = totalMonthlyEMI > 0 ? Math.round((cat.value / totalMonthlyEMI) * 100) : 0;
+                                            const colors = ['#0076F5', '#10B981', '#FBB040', '#8B5CF6', '#EC4899'];
+                                            return (
+                                                <div key={i} className="sg-dist-item">
+                                                    <div className="sg-dist-dot" style={{ background: colors[i % colors.length] }} />
+                                                    <span>{cat.name} {pct}%</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                                <span>New Goal</span>
+                            )}
+                            <div className="sg-hero-ring-card">
+                                <IncomeAllocationRing pct={incomeUsedPct} amount={totalMonthlyEMI} />
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <div className="sg-ring-label" style={{ marginBottom: '4px' }}>GOAL EMI / INCOME</div>
+                                    <div className="sg-ring-status" style={{ color: '#FBB040' }}>₹{fmt(totalMonthlyEMI)}<span style={{ fontSize: 13, opacity: 0.9 }}>/mo</span></div>
+                                </div>
+                            </div>
+                            <div className="sg-hero-ring-card">
+                                <HealthRing score={healthScore} color={healthColor} />
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <div className="sg-ring-label" style={{ marginBottom: '4px' }}>HEALTH SCORE</div>
+                                    <div className="sg-ring-status" style={{ color: healthColor }}>{healthStatus}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Progress Bar ── */}
+            <div className="sg-progress-banner">
+                <div className="sg-pb-left">
+                    <span className="sg-pb-label">SAVINGS PROGRESS</span>
+                    <span className="sg-pb-val">{fmtCr(totalSaved)} <span className="sg-pb-of">/ {fmtCr(totalTarget)}</span></span>
+                </div>
+                <div className="sg-pb-track">
+                    <div className="sg-pb-fill" style={{ width: `${savingsPct}%` }} />
+                    <span className="sg-pb-pct">{savingsPct}%</span>
+                </div>
+            </div>
+
+
+            {/* ── Body ── */}
+            <div className="sg-body">
+                {/* Goals Grid */}
+                <div className="sg-goals-col">
+                    <div className="sg-col-header">
+                        <h2 className="sg-col-title">Active Goals <span className="sg-count-badge">{totalGoals}</span></h2>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {/* Search Bar */}
+                            <div style={{ position: 'relative' }}>
+                                <div className="sg-search-wrap">
+                                    <Search size={14} color="#64748B" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search goals..."
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setShowSuggestions(true);
+                                        }}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    />
+                                </div>
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <div className="sg-suggestions">
+                                        {suggestions.map((s, idx) => (
+                                            <div key={idx} className="sg-suggestion-item" onClick={() => {
+                                                setSearchQuery(s);
+                                                setShowSuggestions(false);
+                                            }}>
+                                                {s}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button className="sg-report-btn" onClick={handleExportReport}>
+                                <Download size={14} /> Report
+                            </button>
+                            <button className="sg-add-btn-sm" onClick={() => setIsModalOpen(true)}>
+                                <Plus size={14} /> Add
                             </button>
                         </div>
                     </div>
 
                     {loading ? (
-                        <div className="base-card loading-state">
-                            <div className="shimmer-card"></div>
-                            <span>Synchronizing Strategic Vault...</span>
+                        <div className="sg-skeletons">
+                            {[1, 2, 3].map(i => <div key={i} className="sg-skeleton" />)}
+                        </div>
+                    ) : filteredGoals.length === 0 ? (
+                        <div className="sg-empty">
+                            <Search size={52} color="#CBD5E1" />
+                            <p>No goals matching "{searchQuery}"</p>
                         </div>
                     ) : (
-                        <div className="goals-v2-grid">
+                        <div className="sg-grid">
                             {filteredGoals.map(goal => {
                                 const target = Number(goal.targetAmount) || 0;
                                 const current = Number(goal.currentBalance) || 0;
-                                const progressPct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
-                                const recPayment = getRecommendedPayment(goal) || 0;
-                                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                                const paidMonths = goal.payments?.map(p => p.month) || [];
+                                const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+                                const meta = getCatMeta(goal.category);
+                                const CatIcon = meta.icon;
+                                const recPay = getRecommendedPayment(goal);
+                                const ringColor = pct >= 80 ? '#10B981' : pct >= 40 ? '#60A5FA' : '#F59E0B';
+                                let dueStr = '';
+                                try { dueStr = new Date(goal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }); } catch { }
+                                const isNear = pct >= 80;
 
                                 return (
-                                    <div key={goal._id} className="goal-item-card-v2">
-                                        <div className="goal-card-header">
-                                            <div className="goal-identity flex-between">
-                                                <div className="flex-row items-center gap-12" style={{ display: 'flex', gap: '24px' }}>
-                                                    <div className={`goal-icon-v2 ${goal.category}`}>
-                                                        {getCategoryIcon(goal.category)}
+                                    <div key={goal._id} className={`sg-goal-card ${isNear ? 'sg-goal-card--near' : ''}`}>
+                                        <div className="sgc-header">
+                                            <div className="sgc-icon-wrap" style={{ background: meta.gradient }}>
+                                                <CatIcon size={18} color="white" />
+                                            </div>
+                                            <div className="sgc-info">
+                                                <h3 className="sgc-title">{goal.title || 'Untitled Goal'}</h3>
+                                                <p className="sgc-meta">{meta.label} • Due {dueStr}</p>
+                                            </div>
+                                            <div className="sgc-actions">
+                                                {deletingId === goal._id ? (
+                                                    <div style={{ display: 'flex', gap: 4 }}>
+                                                        <button className="sgc-act-btn" onClick={() => handleDeleteGoal(goal._id)} style={{ color: '#EF4444', border: '1px solid #EF4444' }}>✓</button>
+                                                        <button className="sgc-act-btn" onClick={() => setDeletingId(null)}>✕</button>
                                                     </div>
-                                                    <div className="goal-info">
-                                                        <div className="goal-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <h3 style={{ margin: 0 }}>{goal.title || 'Untitled Goal'}</h3>
-                                                            {progressPct > 70 && (
-                                                                <div className="status-badge-v2 active">
-                                                                    OPTIMAL
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <span className="goal-meta-v2" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                            <button
-                                                                className={`tracker-toggle-btn ${visibleTrackers[goal._id] ? 'active' : ''}`}
-                                                                onClick={() => toggleTracker(goal._id)}
-                                                                title="Toggle Monthly Strategy"
-                                                            >
-                                                                <CalendarIcon size={12} />
-                                                            </button>
-                                                            Mature on {goal.targetDate || 'TBD'}
-                                                        </span>
-                                                    </div>
+                                                ) : (
+                                                    <button className="sgc-act-btn" onClick={() => setDeletingId(goal._id)} title="Delete">
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="sgc-body">
+                                            <div className="sgc-ring-wrap">
+                                                <DonutRing pct={pct} size={72} stroke={7} color={ringColor} />
+                                                <div className="sgc-ring-center">
+                                                    <span className="sgc-pct-val">{pct}%</span>
                                                 </div>
-                                                <div className="pct-stack text-right" style={{ textAlign: 'right' }}>
-                                                    <span className="data-value mini" style={{ color: 'var(--primary-blue)', display: 'block' }}>{progressPct}%</span>
-                                                    <span className="data-label">FUNDED</span>
+                                            </div>
+                                            <div className="sgc-amounts">
+                                                <div className="sgc-saved">
+                                                    <span className="sgc-saved-lbl">SAVED</span>
+                                                    <span className="sgc-saved-val">₹{fmt(current)}</span>
+                                                </div>
+                                                <div className="sgc-target">
+                                                    <span className="sgc-target-lbl">TARGET</span>
+                                                    <span className="sgc-target-val">{fmtCr(target)}</span>
+                                                </div>
+                                                <div className="sgc-time">
+                                                    <Calendar size={11} color="#94A3B8" />
+                                                    <span>{timeLeft(goal.targetDate)}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {visibleTrackers[goal._id] && (
-                                            <div className="monthly-tracker-v2">
-                                                {months.map((m, idx) => {
-                                                    const today = new Date();
-                                                    const currentMonthIdx = today.getMonth();
-                                                    const currentYear = today.getFullYear();
-
-                                                    // Robust Date Parsing (Avoid Timezone Shift)
-                                                    let sYear = currentYear, sMonth = 0;
-                                                    if (goal.startDate) {
-                                                        const parts = goal.startDate.split('-');
-                                                        sYear = parseInt(parts[0]);
-                                                        sMonth = parseInt(parts[1]) - 1; // 0-indexed
-                                                    }
-
-                                                    // Use safe values for comparison
-                                                    const isBeforeStart = (sYear === currentYear && idx < sMonth) || (sYear > currentYear);
-                                                    const isNotCurrent = idx !== currentMonthIdx;
-                                                    const isFutureYear = currentYear < sYear;
-                                                    const isPaid = paidMonths.includes(m);
-
-                                                    // Constraint: Only current month allowed, and must be >= start date
-                                                    const isDisabled = isBeforeStart || isNotCurrent || isFutureYear;
-
-                                                    let tooltip = `Inject ${m} Funds`;
-                                                    if (isPaid) tooltip = 'EMI Paid';
-                                                    else if (isBeforeStart) tooltip = 'Pre-Strategy Date';
-                                                    else if (isNotCurrent) tooltip = 'Locked: Only Current Month';
-
-                                                    return (
-                                                        <div
-                                                            key={m}
-                                                            className={`month-box-v2 ${isPaid ? 'paid' : ''} ${isDisabled ? 'disabled' : ''}`}
-                                                            onClick={() => !isDisabled && handleMarkAsPaid(goal, recPayment, m)}
-                                                            title={tooltip}
-                                                        >
-                                                            {m}
-                                                        </div>
-                                                    );
-                                                })}
+                                        <div className="sgc-progress-row">
+                                            <div className="sgc-progress-track">
+                                                <div className="sgc-progress-fill" style={{ width: `${pct}%`, background: ringColor }} />
                                             </div>
-                                        )}
-
-                                        <div className="goal-progress-box">
-                                            <div className="progress-data flex-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <div className="balance-stack">
-                                                    <span className="data-label">CURRENT POOL</span>
-                                                    <div className="data-value mini">₹{current.toLocaleString()}</div>
-                                                </div>
-                                                <div className="target-stack text-right" style={{ textAlign: 'right' }}>
-                                                    <span className="data-label">ULTIMATE TARGET</span>
-                                                    <div className="data-value mini">₹{target.toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <div className="progress-track-v2" style={{ marginTop: '8px' }}>
-                                                <div className="progress-fill-v2" style={{
-                                                    width: `${progressPct}%`,
-                                                    background: goal.category === 'retirement' ? 'linear-gradient(90deg, #FB923C, #f97316)' : 'linear-gradient(90deg, #0057FF, #00D1FF)'
-                                                }}></div>
-                                            </div>
+                                            <span className="sgc-status-tag" style={{ color: isNear ? '#10B981' : '#0076F5' }}>
+                                                {isNear ? '🔥 Near Goal' : '+12% YoY'}
+                                            </span>
                                         </div>
 
-                                        <div className="goal-actions-v2" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div className="payment-input-group" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                                                <input
-                                                    type="number"
-                                                    placeholder={`₹${recPayment.toLocaleString()}`}
-                                                    value={paymentAmounts[goal._id] || ''}
-                                                    onChange={(e) => handleAmountChange(goal._id, e.target.value)}
-                                                />
-                                                <button className="pay-btn-v2" onClick={() => handleMarkAsPaid(goal, paymentAmounts[goal._id])}>
-                                                    <ShieldCheck size={16} />
-                                                    <span>Inject Funds</span>
-                                                </button>
-                                            </div>
-                                            <button className="delete-btn-v2 small" onClick={() => handleDeleteGoal(goal._id)} title="Retire Asset">
-                                                <Trash2 size={20} />
+                                        <div className="sgc-pay-row">
+                                            <button className="sgc-pay-btn" onClick={() => openPayModal(goal)}>
+                                                Pay Now
                                             </button>
                                         </div>
                                     </div>
@@ -454,777 +603,411 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
                     )}
                 </div>
 
-                {/* Right Column (Sidebar/Utilities) */}
-                <div className="right-column">
-                    <div className="base-card calculator-card-v2">
-                        <div className="calc-header">
-                            <div className="calc-icon"><Calculator size={18} /></div>
-                            <div className="calc-title">
-                                <h3>Future EMI Calculator</h3>
-                                <p>Financial commitment estimation</p>
-                            </div>
-                        </div>
-
-                        <div className="calc-form">
-                            <div className="input-field">
-                                <label>TARGET AMOUNT</label>
-                                <input
-                                    type="number"
-                                    value={emiCalc.targetAmount}
-                                    onChange={(e) => setEmiCalc({ ...emiCalc, targetAmount: Number(e.target.value) })}
-                                />
-                            </div>
-                            <div className="input-row">
-                                <div className="input-field">
-                                    <label>INTEREST (%)</label>
-                                    <input
-                                        type="number"
-                                        value={emiCalc.interest}
-                                        onChange={(e) => setEmiCalc({ ...emiCalc, interest: Number(e.target.value) })}
-                                    />
-                                </div>
-                                <div className="input-field">
-                                    <label>TENURE (YRS)</label>
-                                    <input
-                                        type="number"
-                                        value={emiCalc.tenure}
-                                        onChange={(e) => setEmiCalc({ ...emiCalc, tenure: Number(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="emi-result-v2">
-                                <span className="res-lbl">Estimated Monthly EMI</span>
-                                <div className="res-val">₹{emi.toLocaleString()}</div>
-                                <div className="res-detail">Total Interest: ₹{totalInterest.toLocaleString()}</div>
-                            </div>
-
-                            <button className="create-btn-v2" onClick={() => {
-                                const targetYear = new Date().getFullYear() + emiCalc.tenure;
-                                setNewGoal({
-                                    title: `Goal for ₹${emiCalc.targetAmount.toLocaleString()}`,
-                                    targetAmount: emiCalc.targetAmount,
-                                    targetDate: `${targetYear}-01-01`,
-                                    category: 'other'
-                                });
-                                setIsModalOpen(true);
-                            }}>
-                                <Plus size={16} />
-                                <span>Create Goal from Result</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="base-card recommendations-card-v2">
-                        <div className="rec-header">
-                            <Zap size={18} />
-                            <h3>Recommended Actions</h3>
-                        </div>
-                        <div className="rec-list">
-                            <div className="rec-item success">
-                                <TrendingUp size={14} />
-                                <p>Top-up 'Retirement' by ₹5k to hit target early.</p>
-                            </div>
-                            <div className="rec-item primary">
-                                <Wallet size={14} />
-                                <p>Use bonus to clear principal faster.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {/* AI Panel */}
+                <AiInsightsPanel goals={filteredGoals} />
             </div>
 
+            {/* ── Create Goal Modal ── */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content-v2">
-                        <div className="modal-header-v2">
-                            <div className="modal-title-stack">
-                                <h3>Architect Strategic Goal</h3>
-                                <p>Initialize a new high-yield financial milestone</p>
-                            </div>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddGoal} className="modal-form-v2">
-                            <div className="form-section">
-                                <div className="input-field">
-                                    <label>GOAL DEFINITION</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Waterfront Penthouse"
-                                        required
-                                        value={newGoal.title}
-                                        onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-                                    />
+                <div className="sg-overlay" onClick={e => e.target === e.currentTarget && setIsModalOpen(false)}>
+                    <div className="sg-modal">
+                        <div className="sg-modal-left">
+                            <div className="sg-modal-hdr">
+                                <div>
+                                    <h2 className="sg-modal-title">Create New Goal</h2>
+                                    <p className="sg-modal-sub">नया लक्ष्य निर्धारित करें • Step towards freedom.</p>
                                 </div>
-                                <div className="input-row">
-                                    <div className="input-field">
-                                        <label>STARTING CAPITAL DATE</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={newGoal.startDate}
-                                            onChange={(e) => setNewGoal({ ...newGoal, startDate: e.target.value })}
-                                        />
+                                <button className="sg-modal-close" onClick={() => setIsModalOpen(false)}><X size={16} /></button>
+                            </div>
+                            <form onSubmit={handleAddGoal} className="sg-form">
+                                <div className="sg-fg">
+                                    <label className="sg-fl">GOAL NAME (लक्ष्य का नाम)</label>
+                                    <input className="sg-fi" type="text" placeholder="e.g., European Summer Trip 2026" required
+                                        value={newGoal.title} onChange={e => setNewGoal({ ...newGoal, title: e.target.value })} />
+                                </div>
+                                <div className="sg-form-row">
+                                    <div className="sg-fg">
+                                        <label className="sg-fl">TARGET AMOUNT</label>
+                                        <div className="sg-prefix-wrap"><span className="sg-prefix">₹</span>
+                                            <input className="sg-fi prefixed" type="number" placeholder="5,00,000" required
+                                                value={newGoal.targetAmount} onChange={e => setNewGoal({ ...newGoal, targetAmount: e.target.value })} />
+                                        </div>
                                     </div>
-                                    <div className="input-field">
-                                        <label>TARGET MATURITY DATE</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={newGoal.targetDate}
-                                            onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
-                                        />
+                                    <div className="sg-fg">
+                                        <label className="sg-fl">DEADLINE</label>
+                                        <input className="sg-fi" type="date" required value={newGoal.targetDate}
+                                            onChange={e => setNewGoal({ ...newGoal, targetDate: e.target.value })} />
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="form-section highlight">
-                                <div className="input-row">
-                                    <div className="input-field">
-                                        <label>TARGET VALUATION (₹)</label>
-                                        <input
-                                            type="number"
-                                            placeholder="Capital Required"
-                                            required
-                                            value={newGoal.targetAmount}
-                                            onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="input-field">
-                                        <label>STRATEGIC CATEGORY</label>
-                                        <select
-                                            value={['apartment', 'retirement', 'other'].includes(newGoal.category) ? newGoal.category : 'custom'}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (val === 'custom') {
-                                                    setNewGoal({ ...newGoal, category: '' });
-                                                } else {
-                                                    setNewGoal({ ...newGoal, category: val });
-                                                }
-                                            }}
-                                        >
-                                            <option value="apartment">Apartment / Real Estate</option>
-                                            <option value="retirement">Retirement Fund</option>
-                                            <option value="other">Strategic Asset</option>
-                                            <option value="custom">Custom (Type your own...)</option>
+                                <div className="sg-form-row">
+                                    <div className="sg-fg">
+                                        <label className="sg-fl">PRIORITY</label>
+                                        <select className="sg-fi" value={newGoal.priority} onChange={e => setNewGoal({ ...newGoal, priority: e.target.value })}>
+                                            <option>High Priority</option><option>Medium Priority</option><option>Low Priority</option>
                                         </select>
-                                        {(!['apartment', 'retirement', 'other'].includes(newGoal.category) || newGoal.category === '') && (
-                                            <input
-                                                type="text"
-                                                placeholder="Enter custom category name..."
-                                                value={newGoal.category}
-                                                onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
-                                                style={{ marginTop: '8px' }}
-                                                autoFocus
-                                            />
-                                        )}
+                                    </div>
+                                    <div className="sg-fg">
+                                        <label className="sg-fl">CATEGORY</label>
+                                        <select className="sg-fi" value={newGoal.category} onChange={e => setNewGoal({ ...newGoal, category: e.target.value })}>
+                                            <option>Short Term ({'<'} 1 Year)</option>
+                                            <option>Medium Term (1-3 Years)</option>
+                                            <option>Long Term (3+ Years)</option>
+                                            <option>Education</option>
+                                            <option>Retirement</option>
+                                        </select>
                                     </div>
                                 </div>
+                                <button type="submit" className="sg-modal-submit"><Flag size={15} /> Establish Goal & Start Tracking</button>
+                            </form>
+                        </div>
+                        <div className="sg-modal-right">
+                            <h3 className="sg-proj-title">Live Projection</h3>
+                            <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
+                                <ModalDonut pct={0} />
                             </div>
-
-                            <div className="modal-footer-v2">
-                                <button type="submit" className="modal-submit-btn">
-                                    <Zap size={18} />
-                                    <span>Initialize Goal Architecture</span>
-                                </button>
+                            <div className="sg-monthly-card">
+                                <div className="sg-mc-label">MONTHLY COMMITMENT</div>
+                                <div className="sg-mc-val">₹{fmt(modalMonthly)}<span>/mo</span></div>
+                                <div className="sg-mc-note"><TrendingUp size={11} /> Based on {modalMonths}-month deadline</div>
                             </div>
-                        </form>
+                            <div className="sg-miles-label">PROJECTED MILESTONES</div>
+                            <div className="sg-milestones">
+                                {[
+                                    { title: `First ${fmtCr(modalTarget * 0.2)}`, date: addMonths(Math.round(modalMonths * 0.2)), active: true },
+                                    { title: 'Halfway Mark', date: addMonths(Math.round(modalMonths * 0.5)), active: false },
+                                    { title: 'Goal Achievement', date: newGoal.targetDate ? new Date(newGoal.targetDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '—', active: false },
+                                ].map((m, i) => (
+                                    <div key={i} className="sg-mile">
+                                        <div className={`sg-mile-dot ${m.active ? 'active' : ''}`} />
+                                        {i < 2 && <div className="sg-mile-line" />}
+                                        <div className="sg-mile-body">
+                                            <div className="sg-mile-title">{m.title}</div>
+                                            <div className="sg-mile-date">Est. {m.date}</div>
+                                        </div>
+                                        {m.active ? <CheckCircle2 size={12} color="#0076F5" /> : <Lock size={12} color="#CBD5E1" />}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="sg-ai-bubble-modal">
+                                <div className="sg-abm-label">ARTHRAKSHAK AI</div>
+                                <p>"I've calculated the inflation-adjusted target for your goal automatically."</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .strategic-goals-container {
-                    padding: 0;
-                    color: var(--text-main);
-                }
-                .page-header {
-                   margin-bottom: 24px;
-                }
-                .header-actions {
-                    display: flex;
-                    gap: 12px;
-                }
+            {/* ── Payment Modal ── */}
+            {isPayModalOpen && payGoal && (
+                <div className="sg-overlay" onClick={e => e.target === e.currentTarget && setIsPayModalOpen(false)}>
+                    <div className="sg-pay-modal">
+                        <div className="sg-pm-left">
+                            <h3 className="sg-pm-title">Scheduled Contribution</h3>
+                            <p className="sg-pm-sub">Select date & adjust amount for {payGoal.title}</p>
 
-                .premium-action-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 10px 20px;
-                    border-radius: 12px;
-                    font-weight: 700;
-                    font-size: 13px;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    font-family: inherit;
-                }
+                            <div className="sg-calendar-card">
+                                <div className="sg-cal-header">
+                                    <span className="sg-cal-month">{new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</span>
+                                </div>
+                                <div className="sg-cal-grid">
+                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                                        <div key={d} className="sg-cal-day-head">{d}</div>
+                                    ))}
+                                    {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay() }).map((_, i) => (
+                                        <div key={`empty-${i}`} />
+                                    ))}
+                                    {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                        const day = i + 1;
+                                        const dStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        const isToday = day === new Date().getDate();
+                                        const isSelected = payDate === dStr;
+                                        return (
+                                            <div key={day}
+                                                className={`sg-cal-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+                                                onClick={() => setPayDate(dStr)}>
+                                                {day}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="sg-pm-right">
+                            <div className="sg-pm-fg">
+                                <label className="sg-pm-label">CONTRIBUTION AMOUNT</label>
+                                <div className="sg-pm-input-wrap">
+                                    <span>₹</span>
+                                    <input
+                                        type="number"
+                                        value={payAmount}
+                                        onChange={e => setPayAmount(e.target.value)}
+                                        onFocus={e => e.target.select()}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <p className="sg-pm-note">Recommended: ₹{fmt(getRecommendedPayment(payGoal))}</p>
+                                    <button
+                                        style={{ fontSize: '10px', background: 'none', border: 'none', color: '#0076F5', cursor: 'pointer', fontWeight: 700 }}
+                                        onClick={() => setPayAmount(getRecommendedPayment(payGoal))}
+                                    >
+                                        Use Rec
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="sg-pm-actions">
+                                <button className="sg-pm-btn confirm" onClick={handleMarkAsPaid}>Confirm Payment</button>
+                                <button className="sg-pm-btn cancel" onClick={() => setIsPayModalOpen(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                .download-report {
-                    background: white;
-                    border: 2px solid var(--primary-blue);
-                    color: var(--primary-blue);
-                    box-shadow: 0 4px 15px rgba(0, 87, 255, 0.1);
-                }
-                .download-report:hover {
-                    background: var(--primary-light-blue);
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 20px rgba(0, 87, 255, 0.15);
-                }
+            <style>{`
+                .sg-root { padding:0; display:flex; flex-direction:column; gap:20px; font-family:'Manrope',sans-serif; color:#0F172A; }
 
-                .history-toggle {
-                    background: var(--text-main);
-                    border: 2px solid var(--text-main);
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                /* Hero */
+                .sg-hero {
+                    background: linear-gradient(120deg,#0057FF 0%,#0084FF 55%,#00D1FF 100%);
+                    border-radius:24px; padding:36px 40px; color:white; position:relative; overflow:hidden;
+                    box-shadow:0 20px 40px rgba(0,87,255,0.25);
                 }
-                .history-toggle:hover {
-                    background: #000;
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-                }
+                /* Hero Banner */
+                .sg-hero { background:linear-gradient(135deg,#0076F5 0%,#0057FF 100%); border-radius:28px; padding:24px 40px; color:white; position:relative; overflow:hidden; box-shadow:0 15px 35px rgba(0,118,245,0.2); margin-bottom:24px; }
+                .sg-hero-bg { position:absolute; inset:0; pointer-events:none; z-index:0; }
+                .sg-bg-icon { position:absolute; opacity:0.07; color:white; }
+                .sg-bg-shield { right:-50px; bottom:-70px; transform:rotate(-10deg); }
+                .sg-bg-target { top:20px; right:160px; opacity:0.05; transform:rotate(15deg); }
+                .sg-bg-trend { bottom:30px; left:46%; opacity:0.04; }
+                .sg-hero-content { display:grid; grid-template-columns:1fr auto; gap:32px; align-items:center; position:relative; z-index:2; }
+                .sg-hero-badge { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); border-radius:100px; padding:4px 10px; font-size:10px; font-weight:800; display:inline-flex; align-items:center; gap:6px; margin-bottom:12px; backdrop-filter:blur(4px); }
+                .sg-hero-title { font-size:28px; font-weight:900; margin:0; letter-spacing:-0.02em; }
+                .sg-hero-sub { font-size:13px; opacity:0.8; margin-top:6px; font-weight:600; display:flex; align-items:center; gap:6px; }
 
-                .dashboard-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 340px;
-                    gap: 24px;
-                }
+                .sg-hero-stats { display:flex; align-items:center; gap:32px; margin-top:24px; }
+                .sg-hero-stat { display:flex; flex-direction:column; gap:2px; }
+                .sg-hs-val { font-size:24px; font-weight:900; }
+                .sg-hs-green { color:#A7F3D0; }
+                .sg-hs-lbl { font-size:10px; font-weight:800; opacity:0.6; text-transform:uppercase; letter-spacing:0.5px; }
+                .sg-hero-stat-div { width:1px; height:32px; background:rgba(255,255,255,0.2); }
+                .sg-hero-right { display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+                /* Pie Chart Card */
+                .sg-pie-card { background:#0F172A; border-radius:22px; padding:24px 28px; border:1px solid #1E293B; box-shadow:0 8px 32px rgba(15,23,42,0.25); }
+                .sg-pie-header { margin-bottom:20px; }
+                .sg-pie-title { font-size:16px; font-weight:800; color:white; margin-bottom:4px; }
+                .sg-pie-sub { font-size:12px; color:#64748B; font-weight:600; }
+                .sg-pie-body { display:flex; align-items:center; gap:32px; flex-wrap:wrap; }
+                .sg-pie-svg-wrap { flex-shrink:0; background:#060D1A; border-radius:50%; padding:4px; box-shadow:0 0 0 4px #1E293B; }
+                .sg-pie-legend { flex:1; min-width:220px; display:flex; flex-direction:column; gap:8px; }
+                .sg-pie-leg-item { display:flex; align-items:center; gap:10px; padding:8px 12px; background:#1E293B; border-radius:12px; border:1px solid #334155; }
+                .sg-pie-leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+                .sg-pie-leg-info { flex:1; min-width:0; }
+                .sg-pie-leg-name { display:block; font-size:12px; font-weight:700; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                .sg-pie-leg-val { display:block; font-size:10px; color:#64748B; font-weight:600; margin-top:1px; }
+                .sg-pie-leg-pct { font-size:13px; font-weight:800; flex-shrink:0; }
+                .sg-pie-total-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-top:1px solid #1E293B; margin-top:4px; font-size:12px; color:#64748B; font-weight:700; }
+                .sg-pie-total-val { color:white; font-size:14px; font-weight:800; }
 
-                /* Hero Allocation Card */
-                .hero-allocation-card {
-                    background: linear-gradient(120deg, #0057FF 0%, #0084FF 50%, #00D1FF 100%);
-                    border-radius: 24px;
-                    padding: 32px;
-                    color: white;
-                    position: relative;
-                    overflow: hidden;
-                    box-shadow: 0 20px 40px rgba(0, 87, 255, 0.2);
-                    margin-bottom: 24px;
-                }
-                .hero-bg-pattern {
-                    position: absolute;
-                    top: 0; left: 0; width: 100%; height: 100%;
-                    pointer-events: none;
-                    z-index: 0;
-                }
-                .bg-icon {
-                    position: absolute;
-                    opacity: 0.08;
-                    color: white;
-                }
-                .bg-icon.shield { right: -40px; bottom: -60px; transform: rotate(-15deg); }
-                .bg-icon.trend { top: 10px; right: 140px; opacity: 0.05; transform: rotate(10deg); }
-                .bg-icon.wallet { bottom: 20px; left: 40%; opacity: 0.04; transform: rotate(-10deg); }
+                .sg-create-hero-btn { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:12px; padding:10px 20px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.2s; white-space:nowrap; margin-bottom:12px; }
+                .sg-create-hero-btn:hover { background:rgba(255,255,255,0.25); transform:translateY(-1px); }
+                .sg-hero-ring-card { display:flex; align-items:center; gap:16px; background:rgba(255,255,255,0.12); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.2); border-radius:14px; padding:16px 20px; color:rgba(255,255,255,0.9); }
+                .sg-ring-label { font-size:10px; font-weight:800; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0px; }
+                .sg-ring-status { font-size:20px; font-weight:800; line-height:1.2; letter-spacing:-0.02em; }
 
-                .hero-main-content { position: relative; z-index: 1; }
-                .hero-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-                .hero-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; opacity: 0.9; }
-                .premium-tag-v2 { font-size: 10px; font-weight: 800; background: rgba(25, 230, 128, 0.2); color: #CCFFEB; padding: 4px 10px; border-radius: 100px; }
+                /* Progress Banner */
+                .sg-progress-banner { background:white; border-radius:18px; padding:18px 24px; border:1px solid #EDF2F7; box-shadow:0 4px 16px rgba(0,0,0,0.04); display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+                .sg-pb-left { display:flex; flex-direction:column; gap:2px; min-width:160px; }
+                .sg-pb-label { font-size:10px; font-weight:800; color:#94A3B8; letter-spacing:0.8px; text-transform:uppercase; }
+                .sg-pb-val { font-size:18px; font-weight:800; color:#0F172A; }
+                .sg-pb-of { font-size:13px; color:#94A3B8; font-weight:600; }
+                .sg-pb-track { flex:1; height:10px; background:#F1F5F9; border-radius:10px; position:relative; overflow:visible; min-width:100px; }
+                .sg-pb-fill { height:100%; border-radius:10px; background:linear-gradient(90deg,#0076F5,#00D1FF); transition:width 0.8s ease; }
+                .sg-pb-pct { position:absolute; right:0; top:-20px; font-size:11px; font-weight:800; color:#0076F5; }
+
+                .sg-dist-legend { display:flex; flex-direction:column; justify-content:center; gap:4px; margin-top:-2px; }
+                .sg-dist-item { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:white; }
+                .sg-dist-dot { width:8px; height:8px; border-radius:50%; }
+
+                /* Body */
+                .sg-body { display:grid; grid-template-columns:1fr 296px; gap:20px; align-items:start; }
+                .sg-search-wrap { display:flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:6px 12px; width:220px; transition:all 0.2s; }
+                .sg-search-wrap:focus-within { border-color:#0076F5; box-shadow:0 0 0 3px rgba(0,118,245,0.1); width:280px; }
+                .sg-search-wrap input { border:none; background:none; outline:none; font-family:inherit; font-size:13px; font-weight:600; color:#1E293B; width:100%; }
                 
-                .balance-fig { font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 24px; }
+                .sg-suggestions { position:absolute; top:calc(100% + 4px); right:0; width:220px; background:white; border:1px solid #E2E8F0; border-radius:10px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); z-index:50; overflow:hidden; }
+                .sg-suggestion-item { padding:8px 12px; font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:background 0.2s; }
+                .sg-suggestion-item:hover { background:#F1F5F9; color:#0076F5; }
 
-                .hero-subs { display: flex; gap: 16px; }
-                .hero-sub-card {
-                    flex: 1;
-                    background: rgba(255, 255, 255, 0.15);
-                    backdrop-filter: blur(10px);
-                    padding: 16px;
-                    border-radius: 20px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    color: white;
-                    text-align: left;
-                    font-family: inherit;
+                @media (max-width: 1200px) {
+                    .sg-body { grid-template-columns: 1fr; }
                 }
-                .projection-trigger { cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
-                .projection-trigger:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-2px); }
+
+                /* Goals Col */
+                .sg-col-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+                .sg-col-title { font-size:22px; font-weight:800; color:#0F172A; display:flex; align-items:center; gap:10px; }
                 
-                .sub-label { font-size: 10px; font-weight: 700; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
-                .sub-value { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-                .sub-value .val { font-size: 18px; font-weight: 800; }
-                .pct-tag { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
-                .pct-tag.green { background: rgba(25, 230, 128, 0.2); color: #CCFFEB; }
-                .sub-detail { font-size: 10px; opacity: 0.7; font-weight: 600; }
-                .p-icon-box-v2 { width: 28px; height: 28px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-
-                /* Strategic Actions Row */
-                .strategic-actions-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 24px;
-                    gap: 16px;
-                }
-                .insight-pill {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    background: #F1F5F9;
-                    padding: 8px 16px;
-                    border-radius: 100px;
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #475569;
-                    border: 1px solid #E2E8F0;
-                }
-                .insight-pill color: var(--primary-blue);
-                .insight-pill span { opacity: 0.9; }
-
-                .action-group-v2 {
-                    display: flex;
-                    gap: 12px;
-                }
-
-                .premium-secondary-btn {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    height: 48px;
-                    background: white;
-                    color: var(--primary-blue);
-                    border: 1.5px solid var(--primary-blue);
-                    padding: 10px 18px;
-                    border-radius: 14px;
-                    font-size: 13px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow: 0 4px 12px rgba(0, 87, 255, 0.08);
-                    font-family: inherit;
-                }
-                .premium-secondary-btn:hover {
-                    background: var(--primary-light-blue);
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 20px rgba(0, 87, 255, 0.12);
-                }
-
-                .new-goal-btn-premium {
-                    background: #0F172A;
-                    color: white;
-                    border: none;
-                    height: 48px;
-                    padding: 0 24px 0 6px;
-                    border-radius: 100px;
-                    font-size: 14px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.3);
-                }
-                .new-goal-btn-premium:hover {
-                    transform: translateY(-2px) scale(1.02);
-                    box-shadow: 0 12px 25px -4px rgba(15, 23, 42, 0.4);
-                    background: #1E293B;
-                }
-                .btn-icon-wrapper {
-                    width: 36px;
-                    height: 36px;
-                    background: rgba(255, 255, 255, 0.15);
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .goals-v2-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 20px;
-                    margin-bottom: 24px;
-                }
-
-                @media (max-width: 1400px) {
-                    .goals-v2-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                .goal-item-card-v2 {
-                    background: white;
-                    border-radius: 24px;
-                    padding: 32px;
-                    border: 1px solid #F1F5F9;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                }
-                .goal-item-card-v2:hover {
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-                    transform: translateY(-4px);
-                    border-color: rgba(0, 118, 245, 0.3);
-                }
-                .goal-item-card-v2::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0; width: 100%; height: 4px;
-                    background: linear-gradient(90deg, var(--primary-blue), #00D1FF);
-                    opacity: 0.8;
-                }
-                .goal-item-card-v2:hover::before { height: 6px; }
-
-                .goal-card-header {
-                    margin-bottom: 24px;
-                }
-                .goal-icon-v2 {
-                    width: 54px;
-                    height: 54px;
-                    border-radius: 16px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-bottom: 16px;
-                    transition: all 0.3s;
-                }
-                .goal-icon-v2.apartment { background: rgba(0, 87, 255, 0.1); color: var(--primary-blue); }
-                .goal-icon-v2.retirement { background: rgba(251, 146, 60, 0.1); color: #FB923C; }
-                .goal-icon-v2.other { background: rgba(148, 163, 184, 0.1); color: #64748B; }
-
-                .goal-title-row h3 {
-                    font-size: 20px;
-                    font-weight: 800;
-                    color: #0F172A;
-                    letter-spacing: -0.5px;
-                }
-                .goal-meta-v2 {
-                    font-size: 13px;
-                    color: #64748B;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }
-
-                /* Monthly Tracker Grid - Soft UI */
-                .monthly-tracker-v2 {
-                    display: grid;
-                    grid-template-columns: repeat(6, 1fr);
-                    gap: 12px;
-                    margin: 20px 0;
-                    padding: 24px;
-                    background: #FAFAFA;
-                    border-radius: 20px;
-                    /* Soft inner shadow or subtle border */
-                    border: 1px solid rgba(0,0,0,0.03);
-                    box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
-                }
-                .month-box-v2 {
-                    height: 40px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 11px;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    cursor: pointer;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    border: 1px solid #F1F5F9;
-                    background: white;
-                    color: #94A3B8;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-                }
-                .month-box-v2.paid {
-                    background: var(--primary-blue);
-                    color: white;
-                    border-color: var(--primary-blue);
-                    box-shadow: 0 4px 12px rgba(0, 87, 255, 0.25);
-                    transform: translateY(-1px);
-                }
-                .month-box-v2:hover:not(.paid):not(.disabled) {
-                    background: white;
-                    border-color: var(--primary-blue);
-                    color: var(--primary-blue);
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0, 87, 255, 0.1);
-                }
-                .month-box-v2.disabled {
-                    background: transparent;
-                    color: #E2E8F0;
-                    border-color: transparent;
-                    box-shadow: none;
-                    cursor: default;
-                }
-
-                .tracker-toggle-btn {
-                    background: #F8FAFC;
-                    border: 1px solid #E2E8F0;
-                    width: 22px;
-                    height: 22px;
-                    border-radius: 6px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    color: #64748B;
-                    padding: 0;
-                }
-                .tracker-toggle-btn:hover { background: white; border-color: var(--primary-blue); color: var(--primary-blue); }
-                .tracker-toggle-btn.active { background: var(--primary-blue); border-color: var(--primary-blue); color: white; }
-
-                .goal-progress-box {
-                    margin-bottom: 24px;
-                }
-                .progress-data { margin-bottom: 12px; }
-                .data-label { font-size: 10px; font-weight: 800; color: #94A3B8; letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
-                .data-value.mini { font-size: 18px; font-weight: 800; color: #1E293B; }
-
-                .progress-track-v2 {
-                    height: 8px;
-                    background: #F1F5F9;
-                    border-radius: 100px;
-                    overflow: hidden;
-                }
-                .progress-fill-v2 {
-                    height: 100%;
-                    border-radius: 100px;
-                    transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-                }
-
-                .goal-actions-v2 {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                }
-
-                .local-search-wrapper {
-                    position: relative;
-                    width: 200px;
-                    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .local-search-wrapper:focus-within {
-                    width: 280px;
-                }
-                .local-search-icon {
-                    position: absolute;
-                    left: 12px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #94A3B8;
-                    pointer-events: none;
-                }
-                .local-search-input {
-                    width: 100%;
-                    height: 48px;
-                    padding: 0 10px 0 46px;
-                    border-radius: 12px;
-                    border: 1px solid #E2E8F0;
-                    background: white;
-                    color: #1E293B;
-                    font-size: 13px;
-                    font-weight: 600;
-                    outline: none;
-                    transition: all 0.2s;
-                }
-                .local-search-input:focus {
-                    border-color: var(--primary-blue);
-                    box-shadow: 0 0 0 3px rgba(0, 87, 255, 0.1);
-                }
-                .local-search-input::placeholder { color: #CBD5E1; }
-
-                .payment-input-group {
-                    flex: 1;
-                    display: flex;
-                    align-items: center;
-                    background: #F8FAFC;
-                    border: 1px solid #E2E8F0;
-                    border-radius: 14px;
-                    padding: 4px;
-                    transition: all 0.2s;
-                }
-                .payment-input-group:focus-within {
-                    border-color: var(--primary-blue);
-                    background: white;
-                    box-shadow: 0 0 0 4px rgba(0, 87, 255, 0.05);
-                }
-                .payment-input-group input {
-                    flex: 1;
-                    background: transparent;
-                    border: none;
-                    padding: 10px 14px;
-                    font-size: 14px;
-                    font-weight: 700;
-                    outline: none;
-                }
-                .pay-btn-v2 {
-                    background: var(--primary-blue);
-                    color: white;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 10px;
-                    font-size: 13px;
-                    font-weight: 800;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    transition: all 0.2s;
-                }
-                .pay-btn-v2:hover { background: #000; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
-                .delete-btn-v2.small {
-                    width: 44px;
-                    height: 44px;
-                    background: white;
-                    border: 1px solid #F1F5F9;
-                    border-radius: 12px;
-                    color: #EF4444;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .delete-btn-v2.small:hover { background: #FEF2F2; border-color: #FEE2E2; transform: scale(1.05); }
-
-                /* Sidebar Utilities */
-                .calculator-card-v2 { padding: 32px; border-radius: 28px; background: white; border: 1px solid #F1F5F9; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02); }
-                .calc-header { display: flex; gap: 12px; margin-bottom: 24px; }
-                .calc-icon { width: 40px; height: 40px; background: var(--primary-light-blue); color: var(--primary-blue); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-                .calc-title h3 { font-size: 15px; font-weight: 700; line-height: 1.2; }
-                .calc-title p { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-
-                .input-field { margin-bottom: 16px; }
-                .input-field label { font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; display: block; }
-                .input-field input, .input-field select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-app); font-weight: 700; font-size: 14px; outline: none; }
-                .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-                .emi-result-v2 { background: var(--primary-blue); color: white; padding: 20px; border-radius: 16px; text-align: center; margin: 8px 0 16px 0; }
-                .res-lbl { font-size: 11px; font-weight: 600; opacity: 0.8; }
-                .res-val { font-size: 32px; font-weight: 800; margin: 4px 0; }
-                .res-detail { font-size: 10px; font-weight: 700; opacity: 0.7; }
-
-                .create-btn-v2 { width: 100%; padding: 12px; border-radius: 12px; background: var(--text-main); color: white; border: none; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
-                .create-btn-v2:hover { background: #000; }
-
-                .recommendations-card-v2 { margin-top: 24px; padding: 20px; }
-                .rec-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; color: var(--text-main); }
-                .rec-header h3 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-                .rec-list { display: flex; flex-direction: column; gap: 12px; }
-                .rec-item { display: flex; gap: 10px; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 600; line-height: 1.4; }
-                .rec-item.success { background: #ECFDF5; color: #166534; }
-                .rec-item.primary { background: var(--primary-light-blue); color: var(--primary-blue); }
-
-                /* High-Fidelity Modal Design - Full Screen */
-                .modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(15, 23, 42, 0.4);
-                    backdrop-filter: blur(8px);
-                    z-index: 9999;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                }
+                .sg-add-btn-sm { display:flex; align-items:center; gap:6px; background:linear-gradient(135deg,#0076F5,#0057FF); color:white; border:none; border-radius:10px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,118,245,0.25); }
+                .sg-add-btn-sm:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,118,245,0.35); }
                 
-                .modal-content-v2 { 
-                    width: 100%;
-                    max-width: 600px;
-                    height: auto;
-                    max-height: 90vh;
-                    background: #F8FAFC;
-                    border-radius: 24px;
-                    border: 1px solid rgba(255, 255, 255, 0.5);
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-                    display: flex;
-                    flex-direction: column;
-                    overflow-y: auto;
-                    animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                }
+                .sg-report-btn { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.8); backdrop-filter:blur(8px); color:#475569; border:1px solid #E2E8F0; border-radius:10px; padding:7px 16px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+                .sg-report-btn:hover { background:white; border-color:#CBD5E1; color:#1E293B; transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.05); }
 
-                @keyframes modalPop {
-                    from { transform: scale(0.95); opacity: 0; }
-                    to { transform: scale(1); opacity: 1; }
-                }
+                .sg-count-badge { background:#EBF5FF; color:#0076F5; font-size:11px; font-weight:800; padding:2px 8px; border-radius:8px; }
 
-                .modal-header-v2 {
-                    padding: 24px 32px;
-                    background: white;
-                    border-bottom: 1px solid #E2E8F0;
-                    position: sticky;
-                    top: 0;
-                    z-index: 10;
-                    display: flex;
-                    justify-content: flex-end;
-                    align-items: center;
-                    border-radius: 24px 24px 0 0;
-                }
+                /* Grid */
+                .sg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; }
+                .sg-skeletons { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; }
+                .sg-skeleton { height:250px; background:linear-gradient(90deg,#F0F4F8 25%,#E2E8F0 50%,#F0F4F8 75%); background-size:200% 100%; animation:sg-shimmer 1.5s infinite; border-radius:20px; }
+                @keyframes sg-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+                .sg-empty { display:flex; flex-direction:column; align-items:center; gap:16px; padding:60px 20px; text-align:center; color:#94A3B8; background:white; border-radius:20px; border:1px solid #EDF2F7; }
+
+                /* Goal Card */
+                .sg-goal-card { background:white; border-radius:20px; padding:18px; border:1px solid #F1F5F9; box-shadow:0 4px 16px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:12px; transition:all 0.25s; }
+                .sg-goal-card:hover { box-shadow:0 12px 32px rgba(0,0,0,0.1); transform:translateY(-3px); border-color:#E2E8F0; }
+                .sg-goal-card--near { border-color:#D1FAE5; box-shadow:0 4px 20px rgba(16,185,129,0.1); }
+
+                .sgc-header { display:flex; align-items:center; gap:10px; }
+                .sgc-icon-wrap { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+                .sgc-info { flex:1; min-width:0; }
+                .sgc-title { font-size:14px; font-weight:800; color:#0F172A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; }
+                .sgc-meta { font-size:11px; color:#94A3B8; font-weight:600; margin-top:2px; }
+                .sgc-actions { display:flex; gap:4px; }
+                .sgc-act-btn { width:26px; height:26px; border:none; background:#F8FAFC; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#94A3B8; transition:all 0.2s; }
+                .sgc-act-btn:hover { background:#FEF2F2; color:#EF4444; }
+
+                .sgc-body { display:flex; align-items:center; gap:12px; }
+                .sgc-ring-wrap { position:relative; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+                .sgc-ring-center { position:absolute; display:flex; align-items:center; justify-content:center; }
+                .sgc-pct-val { font-size:13px; font-weight:800; color:#0F172A; }
+                .sgc-amounts { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+                .sgc-saved, .sgc-target { display:flex; flex-direction:column; gap:1px; }
+                .sgc-saved-lbl, .sgc-target-lbl { font-size:9px; font-weight:800; color:#94A3B8; letter-spacing:0.5px; }
+                .sgc-saved-val { font-size:16px; font-weight:800; color:#0F172A; }
+                .sgc-target-val { font-size:12px; font-weight:700; color:#64748B; }
+                .sgc-time { display:flex; align-items:center; gap:4px; font-size:11px; color:#94A3B8; font-weight:600; margin-top:2px; }
+
+                .sgc-progress-row { display:flex; flex-direction:column; gap:6px; }
+                .sgc-progress-track { height:4px; background:#F1F5F9; border-radius:5px; overflow:hidden; }
+                .sgc-progress-fill { height:100%; border-radius:5px; transition:width 0.6s ease; }
+                .sgc-status-tag { font-size:11px; font-weight:700; align-self:flex-start; margin-top: 2px; }
+
+                .sgc-pay-row { display:flex; padding-top:14px; margin-top: auto; }
+                .sgc-pay-btn { width: 100%; padding:10px 0; background:linear-gradient(135deg,#0076F5,#0057FF); color:white; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.2s; white-space:nowrap; }
+                .sgc-pay-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,118,245,0.4); }
+
+                /* AI Panel */
+                .sg-ai-panel { background:#0F172A; border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:14px; position:sticky; top:24px; color:white; box-shadow:0 8px 32px rgba(15,23,42,0.2); }
+                .sg-ai-header { display:flex; align-items:center; justify-content:space-between; }
+                .sg-ai-header-left { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:800; }
+                .sg-ai-badge { background:linear-gradient(135deg,#EF4444,#F97316); color:white; font-size:9px; font-weight:800; padding:3px 8px; border-radius:6px; letter-spacing:0.5px; animation:pulse-badge 2s infinite; }
+                @keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:0.6}}
+
+                .sg-strategic-card { background:#1E293B; border-radius:14px; padding:14px; }
+                .sg-sc-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+                .sg-sc-label { font-size:10px; font-weight:800; color:#64748B; letter-spacing:0.8px; }
+                .sg-sc-desc { font-size:11px; color:#64748B; line-height:1.5; }
+
+                .sg-toggle { width:44px; height:24px; background:#334155; border:none; border-radius:12px; cursor:pointer; position:relative; transition:background 0.2s; padding:0; }
+                .sg-toggle.on { background:#0076F5; }
+                .sg-toggle-knob { position:absolute; top:3px; left:3px; width:18px; height:18px; background:white; border-radius:50%; transition:left 0.2s; display:block; }
+                .sg-toggle.on .sg-toggle-knob { left:23px; }
+
+                .sg-ai-section { display:flex; flex-direction:column; gap:8px; }
+                .sg-ai-sec-label { display:flex; align-items:center; gap:5px; font-size:9px; font-weight:800; color:#60A5FA; letter-spacing:1px; text-transform:uppercase; }
+                .sg-ai-card { background:#1E293B; border-radius:12px; padding:12px; display:flex; gap:10px; border:1px solid #334155; }
+                .sg-ai-card.alert { border-color:#78350F; background:#1C1208; }
+                .sg-ai-card-icon { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+                .sg-ai-card-icon.blue { background:rgba(96,165,250,0.15); }
+                .sg-ai-card-icon.green { background:rgba(52,211,153,0.15); }
+                .sg-ai-card-icon.amber { background:rgba(251,176,64,0.15); }
+                .sg-ai-card-title { font-size:12px; font-weight:800; color:white; margin-bottom:4px; }
+                .sg-ai-card-desc { font-size:11px; color:#64748B; line-height:1.5; }
+
+                .sg-apply-btn { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; background:linear-gradient(135deg,#059669,#10B981); color:white; border:none; border-radius:10px; padding:10px; font-size:11px; font-weight:800; letter-spacing:0.5px; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+                .sg-apply-btn:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(16,185,129,0.4); }
+
+                .sg-ask-ai-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:11px; background:transparent; border:1.5px dashed #334155; border-radius:12px; color:#64748B; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+                .sg-ask-ai-btn:hover { border-color:#60A5FA; color:#60A5FA; background:rgba(96,165,250,0.05); }
+
+                /* Modal */
+                .sg-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(6px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+                .sg-modal { background:white; border-radius:24px; width:100%; max-width:820px; display:grid; grid-template-columns:1fr 1fr; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.3); animation:sg-slide-up 0.3s ease; }
+                @keyframes sg-slide-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+                @media(max-width:680px){.sg-modal{grid-template-columns:1fr}.sg-modal-right{display:none}}
+
+                .sg-modal-left { padding:32px; display:flex; flex-direction:column; gap:20px; }
+                .sg-modal-hdr { display:flex; justify-content:space-between; align-items:flex-start; }
+                .sg-modal-title { font-size:22px; font-weight:800; color:#0F172A; margin:0; }
+                .sg-modal-sub { font-size:12px; color:#94A3B8; margin-top:4px; }
+                .sg-modal-close { width:32px; height:32px; background:#F8FAFC; border:none; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#64748B; transition:all 0.2s; }
+                .sg-modal-close:hover { background:#FEF2F2; color:#EF4444; }
+
+                /* Payment Modal */
+                .sg-pay-modal { background:white; border-radius:24px; width:100%; max-width:650px; display:grid; grid-template-columns:1.2fr 1fr; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.3); animation:sg-slide-up 0.3s ease; }
+                .sg-pm-left { padding:24px; background:#F8FAFC; border-right:1px solid #EDF2F7; }
+                .sg-pm-right { padding:24px; display:flex; flex-direction:column; justify-content:center; gap:20px; }
+                .sg-pm-title { font-size:18px; font-weight:800; color:#0F172A; margin:0; }
+                .sg-pm-sub { font-size:11px; color:#94A3B8; margin-top:4px; margin-bottom:16px; font-weight:600; }
                 
-                .modal-form-v2 {
-                    padding: 32px;
-                    max-width: 100%;
-                    margin: 0 auto;
-                    width: 100%;
-                }
-                .modal-title-stack h3 { font-size: 24px; font-weight: 800; color: #0F172A; letter-spacing: -0.8px; margin-bottom: 4px; }
-                .modal-title-stack p { font-size: 13px; color: #64748B; font-weight: 600; }
+                .sg-calendar-card { background:white; border-radius:16px; padding:16px; border:1px solid #E2E8F0; }
+                .sg-cal-header { text-align:center; margin-bottom:12px; }
+                .sg-cal-month { font-size:13px; font-weight:800; color:#0F172A; text-transform:uppercase; letter-spacing:0.5px; }
+                .sg-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+                .sg-cal-day-head { font-size:10px; font-weight:800; color:#94A3B8; padding:4px 0; }
+                .sg-cal-day { font-size:12px; font-weight:700; color:#475569; padding:8px 0; border-radius:8px; cursor:pointer; transition:all 0.2s; }
+                .sg-cal-day:hover { background:#F1F5F9; color:#0076F5; }
+                .sg-cal-day.selected { background:#0076F5; color:white; }
+                .sg-cal-day.today { border:1.5px solid #0076F5; color:#0076F5; }
+                .sg-cal-day.selected.today { border-color:white; }
 
-                .form-section { margin-bottom: 24px; padding: 20px; border-radius: 20px; background: #F8FAFC; border: 1px solid #F1F5F9; }
-                .form-section.highlight { background: rgba(0, 87, 255, 0.03); border-color: rgba(0, 87, 255, 0.1); }
+                .sg-pm-fg { display:flex; flex-direction:column; gap:8px; }
+                .sg-pm-label { font-size:9px; font-weight:800; color:#94A3B8; letter-spacing:0.8px; }
+                .sg-pm-input-wrap { display:flex; align-items:center; gap:8px; border:2px solid #E2E8F0; border-radius:12px; padding:8px 14px; transition:border-color 0.2s; }
+                .sg-pm-input-wrap:focus-within { border-color:#0076F5; box-shadow:0 0 0 4px rgba(0,118,245,0.08); }
+                .sg-pm-input-wrap span { font-weight:800; color:#94A3B8; }
+                .sg-pm-input-wrap input { border:none; outline:none; font-size:18px; font-weight:800; color:#0F172A; width:100%; font-family:inherit; }
+                .sg-pm-note { font-size:10px; color:#64748B; font-weight:600; }
 
-                .modal-form-v2 .input-field label { font-size: 10px; font-weight: 800; color: #94A3B8; margin-bottom: 8px; display: block; letter-spacing: 0.5px; }
-                .modal-form-v2 .input-field input, .modal-form-v2 .input-field select { 
-                    background: white; 
-                    border: 1px solid #E2E8F0; 
-                    padding: 14px 18px; 
-                    border-radius: 12px; 
-                    font-size: 15px; 
-                    font-weight: 700;
-                    color: #1E293B;
-                    transition: all 0.2s;
-                }
-                .modal-form-v2 .input-field input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 4px rgba(0, 87, 255, 0.08); outline: none; }
+                .sg-pm-actions { display:flex; flex-direction:column; gap:8px; }
+                .sg-pm-btn { width:100%; padding:12px; border:none; border-radius:12px; font-size:13px; font-weight:800; cursor:pointer; transition:all 0.2s; font-family:inherit; }
+                .sg-pm-btn.confirm { background:linear-gradient(135deg,#0076F5,#0057FF); color:white; box-shadow:0 4px 16px rgba(0,118,245,0.3); }
+                .sg-pm-btn.confirm:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,118,245,0.4); }
+                .sg-pm-btn.cancel { background:#F1F5F9; color:#64748B; }
+                .sg-pm-btn.cancel:hover { background:#E2E8F0; }
 
-                .modal-footer-v2 { margin-top: 32px; }
-                .modal-submit-btn { 
-                    width: 100%; 
-                    padding: 20px; 
-                    background: var(--primary-blue); 
-                    color: white; 
-                    border: none; 
-                    border-radius: 18px; 
-                    font-size: 16px; 
-                    font-weight: 800; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    gap: 12px;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 10px 30px rgba(0, 87, 255, 0.2);
-                }
-                .modal-submit-btn:hover { background: #000; transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); }
+                .sg-form { display:flex; flex-direction:column; gap:14px; }
+                .sg-form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+                .sg-fg { display:flex; flex-direction:column; gap:5px; }
+                .sg-fl { font-size:10px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:0.8px; }
+                .sg-fi { padding:11px 14px; border:1.5px solid #E2E8F0; border-radius:12px; font-size:14px; font-family:inherit; color:#0F172A; outline:none; background:white; transition:border-color 0.2s; width:100%; }
+                .sg-fi:focus { border-color:#0076F5; box-shadow:0 0 0 3px rgba(0,118,245,0.08); }
+                .sg-prefix-wrap { position:relative; }
+                .sg-prefix { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#64748B; font-weight:700; font-size:14px; pointer-events:none; }
+                .sg-fi.prefixed { padding-left:28px; }
+                .sg-modal-submit { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; background:linear-gradient(135deg,#0076F5,#0057FF); color:white; border:none; border-radius:14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.2s; box-shadow:0 4px 20px rgba(0,118,245,0.35); }
+                .sg-modal-submit:hover { transform:translateY(-1px); box-shadow:0 8px 28px rgba(0,118,245,0.4); }
 
-                .close-btn { 
-                    background: #F1F5F9; 
-                    border: none; 
-                    width: 44px; height: 44px; 
-                    border-radius: 14px; 
-                    color: #64748B; 
-                    display: flex; align-items: center; justify-content: center; 
-                    cursor: pointer; transition: all 0.2s;
-                }
-                .close-btn:hover { background: #fee2e2; color: #ef4444; transform: rotate(90deg); }
-
-                .yielding-info { cursor: help; }
-                .loading-state { padding: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--text-muted); font-weight: 700; }
-                .shimmer-card { width: 100%; height: 200px; background: linear-gradient(90deg, #F8FAFC 25%, #F1F5F9 50%, #F8FAFC 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 20px; }
-                @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-                `
-            }} />
+                .sg-modal-right { padding:28px; background:#F8FAFC; border-left:1px solid #EDF2F7; display:flex; flex-direction:column; gap:14px; }
+                .sg-proj-title { font-size:16px; font-weight:800; color:#0F172A; margin:0; }
+                .sg-monthly-card { background:white; border-radius:14px; padding:14px; border:1px solid #EDF2F7; }
+                .sg-mc-label { font-size:9px; font-weight:800; color:#0076F5; letter-spacing:0.8px; margin-bottom:4px; }
+                .sg-mc-val { font-size:20px; font-weight:800; color:#0F172A; }
+                .sg-mc-val span { font-size:13px; font-weight:600; color:#94A3B8; }
+                .sg-mc-note { font-size:11px; color:#94A3B8; font-weight:600; margin-top:4px; display:flex; align-items:center; gap:4px; }
+                .sg-miles-label { font-size:9px; font-weight:800; color:#94A3B8; letter-spacing:0.8px; text-transform:uppercase; }
+                .sg-milestones { display:flex; flex-direction:column; }
+                .sg-mile { display:flex; align-items:flex-start; gap:10px; padding:8px 0; position:relative; }
+                .sg-mile-dot { width:10px; height:10px; border-radius:50%; border:2px solid #CBD5E1; background:white; flex-shrink:0; margin-top:3px; }
+                .sg-mile-dot.active { border-color:#0076F5; background:#0076F5; }
+                .sg-mile-line { position:absolute; left:4px; top:18px; width:1px; height:calc(100% + 2px); background:#E2E8F0; }
+                .sg-mile-body { flex:1; }
+                .sg-mile-title { font-size:12px; font-weight:700; color:#0F172A; }
+                .sg-mile-date { font-size:11px; color:#94A3B8; font-weight:600; margin-top:2px; }
+                .sg-ai-bubble-modal { background:white; border-radius:14px; padding:12px 14px; border:1px solid #EDF2F7; box-shadow:0 4px 16px rgba(0,0,0,0.06); }
+                .sg-abm-label { font-size:9px; font-weight:800; color:#0076F5; letter-spacing:0.8px; margin-bottom:5px; }
+                .sg-ai-bubble-modal p { font-size:11px; color:#475569; line-height:1.5; margin:0; }
+            `}</style>
         </div>
     );
 };

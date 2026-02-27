@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const Goal = require('./models/Goal');
+const Loan = require('./models/Loan');
 
 dotenv.config();
 connectDB();
@@ -89,6 +90,83 @@ app.delete('/api/goals/:id', async (req, res) => {
     try {
         await Goal.findByIdAndDelete(req.params.id);
         res.json({ message: 'Goal deleted' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// --- LOAN ROUTES ---
+
+// Get all loans
+app.get('/api/loans', async (req, res) => {
+    try {
+        const loans = await Loan.find();
+        res.json(loans);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Create a loan
+app.post('/api/loans', async (req, res) => {
+    try {
+        const loan = new Loan(req.body);
+        const savedLoan = await loan.save();
+        res.status(201).json(savedLoan);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Update a loan
+app.put('/api/loans/:id', async (req, res) => {
+    try {
+        const updatedLoan = await Loan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedLoan);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Pay EMI for a loan
+app.put('/api/loans/:id/pay', async (req, res) => {
+    try {
+        const { amount, month } = req.body;
+        const loan = await Loan.findById(req.params.id);
+        if (!loan) {
+            return res.status(404).json({ message: 'Loan not found' });
+        }
+
+        loan.outstandingBalance -= Number(amount);
+        loan.tenureLeft = Math.max(0, loan.tenureLeft - 1);
+
+        // Add payment or update existing pending one for the month
+        const existingIdx = loan.payments.findIndex(p => p.month === month);
+        if (existingIdx > -1) {
+            loan.payments[existingIdx].status = 'done';
+            loan.payments[existingIdx].amount = Number(amount);
+            loan.payments[existingIdx].paidAt = new Date();
+        } else {
+            loan.payments.push({
+                month,
+                status: 'done',
+                amount: Number(amount),
+                paidAt: new Date()
+            });
+        }
+
+        const savedLoan = await loan.save();
+        res.json(savedLoan);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Delete a loan
+app.delete('/api/loans/:id', async (req, res) => {
+    try {
+        await Loan.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Loan deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

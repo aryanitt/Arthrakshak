@@ -13,6 +13,13 @@ import FloatingAssistant from './components/FloatingAssistant';
 import FinancialWellness from './components/FinancialWellness';
 import TransactionHistory from './components/TransactionHistory';
 import StrategicGoals from './components/StrategicGoals';
+import BottomNav from './components/BottomNav';
+import ExpensesModule from './components/ExpensesModule';
+import InvestmentsModule from './components/InvestmentsModule';
+import LoansModule from './components/LoansModule';
+import FamilyModule from './components/FamilyModule';
+import InsightsAI from './components/InsightsAI';
+import AdminProfile from './components/AdminProfile';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -101,6 +108,33 @@ function App() {
                   onPayment={handleGoalPayment}
                 />
               </ErrorBoundary>
+            ) : activeMenu === 'Expenses' ? (
+              <ErrorBoundary name="ExpensesModule">
+                <ExpensesModule />
+              </ErrorBoundary>
+            ) : activeMenu === 'Investments' ? (
+              <ErrorBoundary name="InvestmentsModule">
+                <InvestmentsModule />
+              </ErrorBoundary>
+            ) : activeMenu === 'Loans' ? (
+              <ErrorBoundary name="LoansModule">
+                <LoansModule
+                  onPayment={(amt) => setMainBalance(prev => prev - amt)}
+                  balance={mainBalance}
+                />
+              </ErrorBoundary>
+            ) : activeMenu === 'Family' ? (
+              <ErrorBoundary name="FamilyModule">
+                <FamilyModule />
+              </ErrorBoundary>
+            ) : activeMenu === 'AI' ? (
+              <ErrorBoundary name="InsightsAI">
+                <InsightsAI />
+              </ErrorBoundary>
+            ) : activeMenu === 'Profile' ? (
+              <ErrorBoundary name="AdminProfile">
+                <AdminProfile />
+              </ErrorBoundary>
             ) : (
               <div className="base-card" style={{ padding: '60px', textAlign: 'center' }}>
                 <h2 style={{ color: 'var(--primary-blue)', marginBottom: '16px' }}>{activeMenu} Module</h2>
@@ -149,6 +183,11 @@ function App() {
           transform: translateY(-1px);
         }
       `}} />
+
+      <BottomNav
+        activeMenu={activeMenu}
+        onMenuChange={handleNavigate}
+      />
     </div>
   );
 }

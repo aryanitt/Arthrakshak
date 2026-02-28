@@ -7,6 +7,7 @@ const GoalSchema = new mongoose.Schema({
     startDate: { type: Date, default: Date.now },
     targetDate: { type: String, required: true },
     category: { type: String, default: 'other' },
+    pinned: { type: Boolean, default: false },
     contributions: [{
         month: { type: String },
         status: { type: String, enum: ['done', 'fail', 'pending'], default: 'pending' },

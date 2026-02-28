@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Plus, TrendingUp, Briefcase, Landmark } from 'lucide-react';
 
@@ -8,18 +9,78 @@ const CombinedIncomeModule = () => {
   const [showPassiveForm, setShowPassiveForm] = useState(false);
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [source, setSource] = useState('');
+  const [summary, setSummary] = useState({
+    today: { active: 0, passive: 0, expense: 0 },
+    week: { active: 0, passive: 0, expense: 0 },
+    month: { active: 0, passive: 0, expense: 0 }
+  });
+
+  useEffect(() => {
+    fetchSummary();
+    window.addEventListener('transactionAdded', fetchSummary);
+    return () => window.removeEventListener('transactionAdded', fetchSummary);
+  }, []);
+
+  const fetchSummary = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/financial-summary');
+      setSummary(res.data);
+    } catch (e) {
+      console.error("Error fetching summary:", e);
+    }
+  };
+
+  const handleAddExpense = async () => {
+    if (!amount) return;
+    try {
+      await axios.post('http://localhost:5000/api/transactions', {
+        title: category === 'Custom' ? customCategory : category,
+        amount: Number(amount),
+        type: 'expense',
+        category: category === 'Custom' ? customCategory : category
+      });
+      setAmount('');
+      setCategory('');
+      setCustomCategory('');
+      setShowExpenseForm(false);
+      fetchSummary();
+      // Optional: trigger a global refresh or notify sibling components
+      window.dispatchEvent(new CustomEvent('transactionAdded'));
+    } catch (e) {
+      alert("Failed to add expense");
+    }
+  };
+
+  const handleAddPassive = async () => {
+    if (!amount || !source) return;
+    try {
+      await axios.post('http://localhost:5000/api/transactions', {
+        title: source,
+        amount: Number(amount),
+        type: 'passive-income',
+        category: 'Passive'
+      });
+      setAmount('');
+      setSource('');
+      setShowPassiveForm(false);
+      fetchSummary();
+      window.dispatchEvent(new CustomEvent('transactionAdded'));
+    } catch (e) {
+      alert("Failed to add passive earning");
+    }
+  };
 
   // Dynamic Data Calculation
   const getFinancialData = (period) => {
-    const monthly = { active: 85000, passive: 12400, expense: 18200 };
-    let divisor = 1;
-    if (period === 'Week') divisor = 4.3;
-    if (period === 'Today') divisor = 30;
+    const key = period.toLowerCase();
+    const periodSummary = summary[key] || { active: 0, passive: 0, expense: 0 };
 
     return {
-      active: Math.round(monthly.active / divisor),
-      passive: Math.round(monthly.passive / divisor),
-      expense: Math.round(monthly.expense / divisor)
+      active: periodSummary.active,
+      passive: periodSummary.passive,
+      expense: periodSummary.expense
     };
   };
 
@@ -94,7 +155,7 @@ const CombinedIncomeModule = () => {
                     <span className="legend-amount">₹{item.value.toLocaleString()}</span>
                   </div>
                   <div className="legend-bottom" style={{ color: item.color }}>
-                    {Math.round((item.value / totalFlow) * 100)}%
+                    {totalFlow > 0 ? Math.round((item.value / totalFlow) * 100) : 0}%
                   </div>
                 </div>
               ))}
@@ -110,7 +171,7 @@ const CombinedIncomeModule = () => {
                 </div>
               </div>
               <div className="legend-percentage" style={{ color: chartData[2].color }}>
-                {Math.round((chartData[2].value / totalFlow) * 100)}%
+                {totalFlow > 0 ? Math.round((chartData[2].value / totalFlow) * 100) : 0}%
               </div>
             </div>
           </div>
@@ -130,7 +191,13 @@ const CombinedIncomeModule = () => {
 
           {showExpenseForm && (
             <div className="quick-entry-form animate-form">
-              <input type="number" placeholder="Amount (₹)" className="form-input" />
+              <input
+                type="number"
+                placeholder="Amount (₹)"
+                className="form-input"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
               <select
                 className="form-input"
                 value={category}
@@ -158,7 +225,13 @@ const CombinedIncomeModule = () => {
                   autoFocus
                 />
               )}
-              <button className="submit-btn" style={{ background: '#FF4D4D' }}>Add Expense</button>
+              <button
+                className="submit-btn"
+                style={{ background: '#FF4D4D' }}
+                onClick={handleAddExpense}
+              >
+                Add Expense
+              </button>
             </div>
           )}
 
@@ -174,9 +247,27 @@ const CombinedIncomeModule = () => {
 
           {showPassiveForm && (
             <div className="quick-entry-form animate-form">
-              <input type="number" placeholder="Amount (₹)" className="form-input" />
-              <input type="text" placeholder="Source" className="form-input" />
-              <button className="submit-btn" style={{ background: '#19E680' }}>Add Earning</button>
+              <input
+                type="number"
+                placeholder="Amount (₹)"
+                className="form-input"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Source"
+                className="form-input"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              />
+              <button
+                className="submit-btn"
+                style={{ background: '#19E680' }}
+                onClick={handleAddPassive}
+              >
+                Add Earning
+              </button>
             </div>
           )}
 
@@ -196,9 +287,9 @@ const CombinedIncomeModule = () => {
               <div className="insight-row">
                 <span className="insight-label">Active/Passive/Exp Ratio</span>
                 <span className="insight-value">
-                  {Math.round((periodData.active / totalIncome) * 100)}:
-                  {Math.round((periodData.passive / totalIncome) * 100)}:
-                  {Math.round((periodData.expense / totalIncome) * 100)}
+                  {totalIncome > 0 ? Math.round((periodData.active / totalIncome) * 100) : 0}:
+                  {totalIncome > 0 ? Math.round((periodData.passive / totalIncome) * 100) : 0}:
+                  {totalIncome > 0 ? Math.round((periodData.expense / totalIncome) * 100) : 0}
                 </span>
               </div>
               <div className="insight-row">

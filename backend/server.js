@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const Goal = require('./models/Goal');
 const Loan = require('./models/Loan');
+const Transaction = require('./models/Transaction');
+const Setting = require('./models/Setting');
 
 dotenv.config();
 connectDB();
@@ -16,6 +18,87 @@ app.use(express.json());
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
+});
+
+// --- TRANSACTION ROUTES ---
+
+// Get all transactions
+app.get('/api/transactions', async (req, res) => {
+    try {
+        const transactions = await Transaction.find().sort({ date: -1 }).limit(50);
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Create a transaction
+app.post('/api/transactions', async (req, res) => {
+    try {
+        const transaction = new Transaction(req.body);
+        const savedTransaction = await transaction.save();
+        res.status(201).json(savedTransaction);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Get financial summary
+app.get('/api/financial-summary', async (req, res) => {
+    try {
+        const now = new Date();
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const transactions = await Transaction.find();
+        const activeIncomeSetting = await Setting.findOne({ key: 'fixedActiveIncome' });
+        const startingBalanceSetting = await Setting.findOne({ key: 'startingBalance' });
+
+        const fixedMonthlyIncome = activeIncomeSetting ? Number(activeIncomeSetting.value) : 0;
+        const startingBalance = startingBalanceSetting ? Number(startingBalanceSetting.value) : 0;
+
+        const calculateSummary = (ts) => {
+            const sum = { active: 0, passive: 0, expense: 0 };
+            ts.forEach(t => {
+                if (t.type === 'active-income') sum.active += t.amount;
+                else if (t.type === 'passive-income') sum.passive += t.amount;
+                else if (t.type === 'expense') sum.expense += t.amount;
+            });
+            return sum;
+        };
+
+        const todayTs = transactions.filter(t => new Date(t.date) >= startOfDay);
+        const weekTs = transactions.filter(t => new Date(t.date) >= startOfWeek);
+        const monthTs = transactions.filter(t => new Date(t.date) >= startOfMonth);
+        const allTimeData = calculateSummary(transactions);
+
+        const summary = {
+            today: calculateSummary(todayTs),
+            week: calculateSummary(weekTs),
+            month: calculateSummary(monthTs),
+            allTime: allTimeData,
+            startingBalance,
+            // Total balance = starting balance + all passive income earned - all expenses spent
+            totalBalance: startingBalance + allTimeData.passive - allTimeData.expense
+        };
+
+        // DISTRIBUTE FIXED INCOME: Today = 1/30, Week = 7/30, Month = 1
+        if (fixedMonthlyIncome > 0) {
+            summary.today.active += Math.round(fixedMonthlyIncome / 30);
+            summary.week.active += Math.round((fixedMonthlyIncome / 30) * 7);
+            summary.month.active += fixedMonthlyIncome;
+        }
+
+        res.json(summary);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
 // Get all goals
@@ -39,11 +122,22 @@ app.post('/api/goals', async (req, res) => {
     }
 });
 
-// Update a goal
-app.put('/api/goals/:id', async (req, res) => {
+// Toggle pin status for a goal
+app.put('/api/goals/:id/toggle-pin', async (req, res) => {
     try {
-        const updatedGoal = await Goal.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(updatedGoal);
+        const goal = await Goal.findById(req.params.id);
+        if (!goal) return res.status(404).json({ message: 'Goal not found' });
+
+        if (!goal.pinned) {
+            const pinnedCount = await Goal.countDocuments({ pinned: true });
+            if (pinnedCount >= 2) {
+                return res.status(400).json({ message: 'You can only pin up to 2 goals to the dashboard.' });
+            }
+        }
+
+        goal.pinned = !goal.pinned;
+        const savedGoal = await goal.save();
+        res.json(savedGoal);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -85,6 +179,16 @@ app.put('/api/goals/:id/pay', async (req, res) => {
     }
 });
 
+// Update a goal
+app.put('/api/goals/:id', async (req, res) => {
+    try {
+        const updatedGoal = await Goal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedGoal);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
 // Delete a goal
 app.delete('/api/goals/:id', async (req, res) => {
     try {
@@ -92,6 +196,34 @@ app.delete('/api/goals/:id', async (req, res) => {
         res.json({ message: 'Goal deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// --- SETTINGS ROUTES ---
+
+// Get a setting by key
+app.get('/api/settings/:key', async (req, res) => {
+    try {
+        const setting = await Setting.findOne({ key: req.params.key });
+        if (!setting) return res.status(404).json({ message: 'Setting not found' });
+        res.json(setting);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Create or update a setting
+app.post('/api/settings/:key', async (req, res) => {
+    try {
+        const { value } = req.body;
+        const setting = await Setting.findOneAndUpdate(
+            { key: req.params.key },
+            { value },
+            { new: true, upsert: true }
+        );
+        res.json(setting);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 });
 
@@ -113,16 +245,6 @@ app.post('/api/loans', async (req, res) => {
         const loan = new Loan(req.body);
         const savedLoan = await loan.save();
         res.status(201).json(savedLoan);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
-
-// Update a loan
-app.put('/api/loans/:id', async (req, res) => {
-    try {
-        const updatedLoan = await Loan.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(updatedLoan);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -157,6 +279,16 @@ app.put('/api/loans/:id/pay', async (req, res) => {
 
         const savedLoan = await loan.save();
         res.json(savedLoan);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Update a loan
+app.put('/api/loans/:id', async (req, res) => {
+    try {
+        const updatedLoan = await Loan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedLoan);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

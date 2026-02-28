@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './index.css';
 
 import Sidebar from './components/Sidebar';
@@ -20,16 +21,36 @@ import LoansModule from './components/LoansModule';
 import FamilyModule from './components/FamilyModule';
 import InsightsAI from './components/InsightsAI';
 import AdminProfile from './components/AdminProfile';
+import TransactionsPage from './components/TransactionsPage';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [mainBalance, setMainBalance] = useState(1245000);
   const [financials, setFinancials] = useState({
-    monthlySalary: 85000,
-    dailyPassiveIncome: 413,
-    dailyExpenses: 607
+    today: { active: 0, passive: 0, expense: 0 },
+    week: { active: 0, passive: 0, expense: 0 },
+    month: { active: 0, passive: 0, expense: 0 }
   });
+
+  useEffect(() => {
+    fetchFinancials();
+    window.addEventListener('transactionAdded', fetchFinancials);
+    return () => window.removeEventListener('transactionAdded', fetchFinancials);
+  }, []);
+
+  const fetchFinancials = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/financial-summary');
+      setFinancials(res.data);
+      // Use backend-calculated total balance
+      if (typeof res.data.totalBalance === 'number') {
+        setMainBalance(res.data.totalBalance);
+      }
+    } catch (e) {
+      console.error("Error fetching financials:", e);
+    }
+  };
 
   const handleNavigate = (label) => {
     setActiveMenu(label);
@@ -96,7 +117,7 @@ function App() {
                   </div>
                   <div style={{ marginTop: '20px' }}>
                     <ErrorBoundary name="TransactionHistory">
-                      <TransactionHistory />
+                      <TransactionHistory onViewAll={() => handleNavigate('Transactions')} />
                     </ErrorBoundary>
                   </div>
                 </div>
@@ -104,7 +125,7 @@ function App() {
             ) : activeMenu === 'Goals' ? (
               <ErrorBoundary name="StrategicGoals">
                 <StrategicGoals
-                  monthlyIncome={financials.monthlySalary}
+                  monthlyIncome={financials.month.active}
                   onPayment={handleGoalPayment}
                 />
               </ErrorBoundary>
@@ -130,6 +151,10 @@ function App() {
             ) : activeMenu === 'AI' ? (
               <ErrorBoundary name="InsightsAI">
                 <InsightsAI />
+              </ErrorBoundary>
+            ) : activeMenu === 'Transactions' ? (
+              <ErrorBoundary name="TransactionsPage">
+                <TransactionsPage />
               </ErrorBoundary>
             ) : activeMenu === 'Profile' ? (
               <ErrorBoundary name="AdminProfile">

@@ -10,12 +10,12 @@ import {
     Plane, Car, Landmark, Star, ShieldAlert,
     AlertTriangle, Lock, CheckCircle2, Circle,
     Mic, X, Flag, Calendar, Shield, Wallet,
-    ArrowUpRight, Sparkles, ChevronRight, Download, Search
+    ArrowUpRight, Sparkles, ChevronRight, Download, Search, Pin
 } from 'lucide-react';
 
 import AiInsightsPanel from './AiInsightsPanel';
 
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
 const fmtCr = (n) => {
@@ -165,7 +165,7 @@ const CategoryDistributionPie = ({ data }) => {
     );
 };
 
-const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
+const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -221,6 +221,15 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
         } catch (e) {
             console.error(e);
             alert("Failed to delete goal. Please try again.");
+        }
+    };
+
+    const handleTogglePin = async (goal) => {
+        try {
+            const res = await axios.put(`${API_BASE_URL}/goals/${goal._id}/toggle-pin`);
+            setGoals(goals.map(g => g._id === goal._id ? res.data : g));
+        } catch (e) {
+            alert(e.response?.data?.message || "Failed to toggle pin.");
         }
     };
 
@@ -546,6 +555,13 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
                                                 <p className="sgc-meta">{meta.label} • Due {dueStr}</p>
                                             </div>
                                             <div className="sgc-actions">
+                                                <button
+                                                    className={`sgc-act-btn ${goal.pinned ? 'sgc-act-btn--pinned' : ''}`}
+                                                    onClick={() => handleTogglePin(goal)}
+                                                    title={goal.pinned ? "Unpin from Dashboard" : "Pin to Dashboard"}
+                                                >
+                                                    <Pin size={13} fill={goal.pinned ? "var(--primary-blue)" : "none"} />
+                                                </button>
                                                 {deletingId === goal._id ? (
                                                     <div style={{ display: 'flex', gap: 4 }}>
                                                         <button className="sgc-act-btn" onClick={() => handleDeleteGoal(goal._id)} style={{ color: '#EF4444', border: '1px solid #EF4444' }}>✓</button>
@@ -875,6 +891,8 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 85000 }) => {
                 .sgc-actions { display:flex; gap:4px; }
                 .sgc-act-btn { width:26px; height:26px; border:none; background:#F8FAFC; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#94A3B8; transition:all 0.2s; }
                 .sgc-act-btn:hover { background:#FEF2F2; color:#EF4444; }
+                .sgc-act-btn--pinned { background:#EBF5FF; color:#0076F5; }
+                .sgc-act-btn--pinned:hover { background:#DBEAFE; color:#0066FF; }
 
                 .sgc-body { display:flex; align-items:center; gap:12px; }
                 .sgc-ring-wrap { position:relative; display:flex; align-items:center; justify-content:center; flex-shrink:0; }

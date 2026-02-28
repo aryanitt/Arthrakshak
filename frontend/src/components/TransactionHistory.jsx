@@ -1,38 +1,84 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownLeft, Coffee, ShoppingCart, Home, Briefcase } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { ArrowUpRight, ArrowDownLeft, Coffee, ShoppingCart, Home, Briefcase, Landmark, TrendingUp } from 'lucide-react';
 
-const TransactionHistory = () => {
-  const transactions = [
-    { id: 1, title: 'Netflix Subscription', date: 'Today, 10:30 AM', amount: '-499', type: 'debit', icon: <div className="txn-icon" style={{ background: 'rgba(255, 77, 77, 0.1)', color: '#FF4D4D' }}>N</div> },
-    { id: 2, title: 'Salary Credited', date: 'Yesterday, 6:00 PM', amount: '+85,000', type: 'credit', icon: <div className="txn-icon" style={{ background: 'rgba(25, 230, 128, 0.1)', color: '#19E680' }}><Briefcase size={18} /></div> },
-    { id: 3, title: 'Grocery Payment', date: '12 Feb, 8:15 PM', amount: '-2,450', type: 'debit', icon: <div className="txn-icon" style={{ background: 'rgba(0, 132, 255, 0.1)', color: '#0084FF' }}><ShoppingCart size={18} /></div> },
-    { id: 4, title: 'Starbucks Coffee', date: '12 Feb, 5:40 PM', amount: '-350', type: 'debit', icon: <div className="txn-icon" style={{ background: 'rgba(255, 138, 0, 0.1)', color: '#FF8A00' }}><Coffee size={18} /></div> },
-    { id: 5, title: 'Rent Payment', date: '01 Feb, 9:00 AM', amount: '-18,000', type: 'debit', icon: <div className="txn-icon" style={{ background: 'rgba(100, 116, 139, 0.1)', color: '#64748B' }}><Home size={18} /></div> },
-    { id: 6, title: 'Amazon Shopping', date: '30 Jan, 2:15 PM', amount: '-1,299', type: 'debit', icon: <div className="txn-icon" style={{ background: 'rgba(255, 138, 0, 0.1)', color: '#FF8A00' }}><ShoppingCart size={18} /></div> },
-  ];
+const TransactionHistory = ({ onViewAll }) => {
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    fetchTransactions();
+    window.addEventListener('transactionAdded', fetchTransactions);
+    return () => window.removeEventListener('transactionAdded', fetchTransactions);
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/transactions');
+      setTransactions(res.data);
+    } catch (e) {
+      console.error("Error fetching transactions:", e);
+    }
+  };
+
+  const getIcon = (txn) => {
+    if (txn.type === 'active-income') return <Briefcase size={18} />;
+    if (txn.type === 'passive-income') return <Landmark size={18} />;
+    const cat = txn.category?.toLowerCase() || '';
+    if (cat.includes('food')) return <Coffee size={18} />;
+    if (cat.includes('shop') || cat.includes('amazon')) return <ShoppingCart size={18} />;
+    if (cat.includes('rent') || cat.includes('bill')) return <Home size={18} />;
+    return <TrendingUp size={18} style={{ transform: 'rotate(180deg)' }} />;
+  };
+
+  const getColor = (txn) => {
+    if (txn.type === 'active-income') return '#19E680';
+    if (txn.type === 'passive-income') return '#0084FF';
+    return '#FF4D4D';
+  };
+
+  const getBgColor = (txn) => {
+    if (txn.type === 'active-income') return 'rgba(25, 230, 128, 0.1)';
+    if (txn.type === 'passive-income') return 'rgba(0, 132, 255, 0.1)';
+    return 'rgba(255, 77, 77, 0.1)';
+  };
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return d.toLocaleDateString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="base-card transaction-history">
       <div className="header flex-between" style={{ marginBottom: '20px' }}>
         <h3>Transaction History</h3>
-        <button className="view-link">View All</button>
+        <button className="view-link" onClick={onViewAll}>View All →</button>
       </div>
 
       <div className="txn-list">
-        {transactions.slice(0, 6).map((txn) => (
-          <div key={txn.id} className="txn-item">
-            <div className="txn-left">
-              {txn.icon}
-              <div className="txn-info">
-                <span className="txn-title">{txn.title}</span>
-                <span className="txn-date">{txn.date}</span>
+        {transactions.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>
+            No transactions yet.
+          </div>
+        ) : (
+          transactions.slice(0, 7).map((txn) => (
+            <div key={txn._id} className="txn-item">
+              <div className="txn-left">
+                <div className="txn-icon" style={{ background: getBgColor(txn), color: getColor(txn) }}>
+                  {getIcon(txn)}
+                </div>
+                <div className="txn-info">
+                  <span className="txn-title">{txn.title}</span>
+                  <span className="txn-date">{formatDate(txn.date)}</span>
+                </div>
+              </div>
+              <div className={`txn-amount ${txn.type === 'expense' ? 'debit' : 'credit'}`}>
+                {txn.type === 'expense' ? '-' : '+'}₹{txn.amount.toLocaleString()}
               </div>
             </div>
-            <div className={`txn-amount ${txn.type}`}>
-              {txn.amount}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{

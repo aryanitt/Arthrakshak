@@ -4,24 +4,19 @@ import { Eye, ShieldCheck, TrendingUp, Wallet } from 'lucide-react';
 const HeroBalanceCard = ({ balance, financials }) => {
   const [timePeriod, setTimePeriod] = useState('Today');
 
-  const { monthlySalary, dailyPassiveIncome, dailyExpenses } = financials;
-  const dailyActiveIncome = Math.round(monthlySalary / 30);
-
-  // Calculate based on selected period
-  const getPeriodMultiplier = () => {
+  // Map internal state to backend response keys
+  const getPeriodData = () => {
     switch (timePeriod) {
-      case 'Today': return 1;
-      case 'Week': return 7;
-      case 'Monthly': return 30;
-      default: return 1;
+      case 'Today': return financials.today || { active: 0, passive: 0, expense: 0 };
+      case 'Week': return financials.week || { active: 0, passive: 0, expense: 0 };
+      case 'Monthly': return financials.month || { active: 0, passive: 0, expense: 0 };
+      default: return financials.today || { active: 0, passive: 0, expense: 0 };
     }
   };
 
-  const multiplier = getPeriodMultiplier();
-  const periodActiveIncome = dailyActiveIncome * multiplier;
-  const periodPassiveIncome = dailyPassiveIncome * multiplier;
-  const totalPeriodIncome = periodActiveIncome + periodPassiveIncome;
-  const periodExpenses = dailyExpenses * multiplier;
+  const periodData = getPeriodData();
+  const totalPeriodIncome = periodData.active + periodData.passive;
+  const periodExpenses = periodData.expense;
 
   return (
     <div className="hero-balance-card">
@@ -59,7 +54,7 @@ const HeroBalanceCard = ({ balance, financials }) => {
               <span className="pct-tag green">{timePeriod}</span>
             </div>
             <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.9, fontWeight: 500 }}>
-              Active: ₹{periodActiveIncome.toLocaleString()} | Passive: ₹{periodPassiveIncome.toLocaleString()}
+              Active: ₹{periodData.active.toLocaleString()} | Passive: ₹{periodData.passive.toLocaleString()}
             </div>
           </div>
           <div className="hero-sub-card">
@@ -69,8 +64,9 @@ const HeroBalanceCard = ({ balance, financials }) => {
               <span className="pct-tag orange">{timePeriod}</span>
             </div>
             <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.9, fontWeight: 500 }}>
-              {timePeriod !== 'Monthly' && `Monthly: ₹${(dailyExpenses * 30).toLocaleString()}`}
-              {timePeriod === 'Monthly' && `Daily Avg: ₹${dailyExpenses.toLocaleString()}`}
+              {timePeriod === 'Today' && `Yesterday: ₹0`}
+              {timePeriod === 'Week' && `Daily Avg: ₹${Math.round(periodExpenses / 7).toLocaleString()}`}
+              {timePeriod === 'Monthly' && `Daily Avg: ₹${Math.round(periodExpenses / 30).toLocaleString()}`}
             </div>
           </div>
         </div>

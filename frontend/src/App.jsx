@@ -22,6 +22,7 @@ import FamilyModule from './components/FamilyModule';
 import InsightsAI from './components/InsightsAI';
 import AdminProfile from './components/AdminProfile';
 import TransactionsPage from './components/TransactionsPage';
+import CreditCardsModule from './components/CreditCardsModule';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -87,7 +88,11 @@ function App() {
               <div className="dashboard-grid">
                 <div className="left-column">
                   <ErrorBoundary name="HeroBalanceCard">
-                    <HeroBalanceCard balance={mainBalance} financials={financials} />
+                    <HeroBalanceCard
+                      balance={mainBalance}
+                      financials={financials}
+                      onNavigate={handleNavigate}
+                    />
                   </ErrorBoundary>
                   <div style={{ marginTop: '20px' }}>
                     <ErrorBoundary name="CombinedIncomeModule">
@@ -159,6 +164,10 @@ function App() {
             ) : activeMenu === 'Profile' ? (
               <ErrorBoundary name="AdminProfile">
                 <AdminProfile />
+              </ErrorBoundary>
+            ) : activeMenu === 'Cards' ? (
+              <ErrorBoundary name="CreditCardsModule">
+                <CreditCardsModule onBack={() => handleNavigate('Dashboard')} />
               </ErrorBoundary>
             ) : (
               <div className="base-card" style={{ padding: '60px', textAlign: 'center' }}>

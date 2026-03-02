@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { CreditCard, ShieldCheck, CheckCircle2, Clock, TrendingUp, Calendar, DollarSign, Plus, X } from 'lucide-react';
+import {
+    CreditCard, ShieldCheck, CheckCircle2, Clock,
+    TrendingUp, Calendar, DollarSign, Plus, X,
+    ArrowUpRight, ArrowDownRight, Info, AlertTriangle, Shield, Zap
+} from 'lucide-react';
 
 const LoansModule = ({ onPayment, balance }) => {
     const [loans, setLoans] = useState([]);
@@ -14,7 +18,6 @@ const LoansModule = ({ onPayment, balance }) => {
     const [calcRate, setCalcRate] = useState(8.5);
     const [calcTenure, setCalcTenure] = useState(120);
 
-    // New Loan Form State
     const [newLoan, setNewLoan] = useState({
         type: 'Home Loan',
         lender: '',
@@ -24,6 +27,8 @@ const LoansModule = ({ onPayment, balance }) => {
         emi: '',
         tenureTotal: '',
         tenureLeft: '',
+        completionMonth: new Date().getMonth() + 1,
+        completionYear: new Date().getFullYear() + 5,
         color: '#0076F5'
     });
 
@@ -58,12 +63,6 @@ const LoansModule = ({ onPayment, balance }) => {
     const totalEmi = loans.reduce((acc, curr) => acc + curr.emi, 0);
     const dtiRatio = Math.round((totalEmi / MONTHLY_INCOME) * 100);
 
-    const calculateEMI = (p, r, n) => {
-        if (!p || !r || !n) return 0;
-        const rate = r / 12 / 100;
-        return Math.round((p * rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1));
-    };
-
     const handleAddLoan = async (e) => {
         e.preventDefault();
         try {
@@ -75,342 +74,522 @@ const LoansModule = ({ onPayment, balance }) => {
                 tenureTotal: Number(newLoan.tenureTotal),
                 tenureLeft: Number(newLoan.tenureLeft)
             };
-            console.log('Sending loan data:', payload);
-            const response = await axios.post('http://localhost:5000/api/loans', payload);
-            console.log('Loan added successfully:', response.data);
+            await axios.post('http://localhost:5000/api/loans', payload);
             setIsModalOpen(false);
             fetchLoans();
-            // Reset form
             setNewLoan({
                 type: 'Home Loan',
-                lender: '',
-                totalAmount: '',
-                outstandingBalance: '',
-                interestRate: '',
-                emi: '',
-                tenureTotal: '',
-                tenureLeft: '',
+                lender: '', totalAmount: '', outstandingBalance: '',
+                interestRate: '', emi: '', tenureTotal: '', tenureLeft: '',
+                completionMonth: new Date().getMonth() + 1,
+                completionYear: new Date().getFullYear() + 5,
                 color: '#0076F5'
             });
-            alert('Loan added successfully!');
         } catch (err) {
             console.error('Error adding loan:', err);
-            const errorMsg = err.response?.data?.message || err.message || 'Failed to add loan';
-            alert(`Error: ${errorMsg}\n\nPlease make sure the backend server is running on port 5000.`);
         }
     };
 
-
-    const emiResult = calculateEMI(calcAmount, calcRate, calcTenure);
-    const interestSaved = prepayAmount * 16;
     const tenureReduced = Math.floor(prepayAmount / 2500);
+    const interestSaved = prepayAmount * 16;
 
-    const principalPaid = 11.04;
-    const interestPaidPct = 40;
-
-    if (loading) return <div style={{ padding: '80px', textAlign: 'center' }}>Loading...</div>;
+    if (loading) return <div style={{ padding: '80px', textAlign: 'center', color: '#8a99af' }}>Loading...</div>;
 
     return (
-        <div style={{ width: '100%', padding: '24px', background: '#F6F9FF' }}>
-            {/* Header */}
-            <div style={{ background: 'linear-gradient(135deg, #0057FF 0%, #00A3FF 100%)', borderRadius: '24px', padding: '32px', color: 'white', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.9 }}>TOTAL OUTSTANDING (कुल बकाया राशि)</span>
-                            <span style={{ fontSize: '11px', fontWeight: 800, background: dtiRatio > 35 ? 'rgba(255,77,77,0.3)' : 'rgba(25,230,128,0.3)', padding: '4px 12px', borderRadius: '20px' }}>
-                                DEBT HEALTH IN {dtiRatio > 35 ? 'CRITICAL' : dtiRatio > 25 ? 'MEDIUM' : 'OPTIMAL'}
-                            </span>
+        <div className="loans-premium-root">
+            {/* --- Hero Header --- */}
+            <header className="loans-hero">
+                <div className="hero-bg-pattern">
+                    <div className="glow-orb orb-1"></div>
+                    <div className="glow-orb orb-2"></div>
+                    <div className="glow-orb orb-3"></div>
+                </div>
+
+                <div className="hero-top">
+                    <div className="hero-info">
+                        <div className="hero-badge">
+                            <span className="badge-dot" style={{ backgroundColor: dtiRatio > 35 ? '#ef4444' : '#22c55e' }}></span>
+                            DEBT HEALTH: {dtiRatio > 35 ? 'CRITICAL' : dtiRatio > 25 ? 'STRESSED' : 'OPTIMAL'}
                         </div>
-                        <div style={{ fontSize: '48px', fontWeight: 800, marginBottom: '20px' }}>₹{totalOutstanding.toLocaleString('en-IN')}</div>
-                        <div style={{ display: 'flex', gap: '40px' }}>
-                            <div>
-                                <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>MONTHLY BURN (EMI)</div>
-                                <div style={{ fontSize: '28px', fontWeight: 800 }}>₹{totalEmi.toLocaleString('en-IN')}</div>
-                                <div style={{ fontSize: '11px', opacity: 0.7 }}>FROM EMI / LOSS - 25%</div>
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>DEBT HEALTH INDICATOR</div>
-                                <div style={{ fontSize: '28px', fontWeight: 800, color: dtiRatio > 35 ? '#FFB3B3' : '#19E680' }}>Optimal</div>
-                                <div style={{ fontSize: '11px', opacity: 0.7 }}>DSR ratio: {dtiRatio}% (Sustainable - 35%)</div>
-                            </div>
-                        </div>
+                        <h1 className="hero-label">Total Outstanding</h1>
+                        <div className="hero-amount">₹{totalOutstanding.toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '8px' }}>NEXT EMI DUE IN</div>
-                        <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '1px' }}>
+                    <div className="hero-countdown">
+                        <span className="lbl">NEXT EMI DUE IN</span>
+                        <div className="timer">
                             {String(timeLeft.days).padStart(2, '0')}d : {String(timeLeft.hours).padStart(2, '0')}h : {String(timeLeft.minutes).padStart(2, '0')}m
-                        </div>
-                        <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '12px' }}>
-                            <div style={{ fontSize: '10px', marginBottom: '4px' }}>Admin Portal</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FF8A00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>A</div>
-                                <span style={{ fontSize: '13px', fontWeight: 700 }}>Admin Portal</span>
-                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-                {/* Left Column */}
-                <div>
-                    {/* Active Loan Portfolios */}
-                    <div style={{ marginBottom: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>ACTIVE LOAN PORTFOLIOS</h3>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                <button onClick={() => setIsModalOpen(true)} style={{ background: '#0F172A', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s' }}>
-                                    <Plus size={18} /> Add Loan
+                <div className="hero-stats">
+                    <div className="h-stat">
+                        <span className="lbl">Monthly Burn (EMI)</span>
+                        <div className="val">₹{totalEmi.toLocaleString('en-IN')}</div>
+                        <span className="sub">25% of Monthly Income</span>
+                    </div>
+                    <div className="divider"></div>
+                    <div className="h-stat">
+                        <span className="lbl">Debt Health Indicator</span>
+                        <div className="val" style={{ color: dtiRatio > 35 ? '#ef4444' : '#22c55e' }}>
+                            {dtiRatio < 35 ? 'Sustainable' : 'High Risk'}
+                        </div>
+                        <span className="sub">DSR ratio: {dtiRatio}% (Target: &lt; 35%)</span>
+                    </div>
+                </div>
+            </header>
+
+            <div className="loans-grid">
+                {/* --- Left Column --- */}
+                <main className="loans-main">
+                    {/* Active Portfolios */}
+                    <div className="section-wrap">
+                        <div className="section-header">
+                            <h2>Active Loan Portfolios</h2>
+                            <div className="header-actions">
+                                <button className="add-btn" onClick={() => setIsModalOpen(true)}>
+                                    <Plus size={16} /> Add Loan Account
                                 </button>
-                                <button style={{ color: '#0076F5', fontSize: '13px', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>View All →</button>
+                                <button className="view-all">View All</button>
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div className="portfolio-grid">
                             {loans.slice(0, 2).map((loan, idx) => {
                                 const progress = ((loan.totalAmount - loan.outstandingBalance) / loan.totalAmount) * 100;
+                                const color = idx === 0 ? '#0076F5' : '#7C3AED';
                                 return (
-                                    <div key={idx} style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #EDF2F7' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                            <div>
-                                                <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '4px' }}>HDFC</div>
-                                                <div style={{ fontSize: '16px', fontWeight: 800 }}>{loan.type}</div>
-                                                <div style={{ fontSize: '11px', color: '#64748B' }}>{loan.interestRate}</div>
+                                    <div key={loan._id} className="portfolio-card glassy">
+                                        <div className="card-top">
+                                            <div className="bank-info">
+                                                <span className="bank-lbl">HDFC BANK</span>
+                                                <h3>{loan.type}</h3>
+                                                <div className="rate-badge">{loan.interestRate}% Interest</div>
                                             </div>
-                                            <div style={{ position: 'relative', width: '60px', height: '60px' }}>
-                                                <svg width="60" height="60" style={{ transform: 'rotate(-90deg)' }}>
-                                                    <circle cx="30" cy="30" r="24" fill="none" stroke="#F1F5F9" strokeWidth="6" />
-                                                    <circle cx="30" cy="30" r="24" fill="none" stroke={idx === 0 ? '#0076F5' : '#FF8A00'} strokeWidth="6" strokeDasharray={`${progress * 1.5} 150`} />
+                                            <div className="progress-gauge">
+                                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                                    <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                                                    <circle
+                                                        cx="30" cy="30" r="26" fill="none" stroke={color} strokeWidth="4"
+                                                        strokeDasharray={`${progress * 1.63} 163`} strokeLinecap="round"
+                                                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                                                    />
                                                 </svg>
-                                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '14px', fontWeight: 800 }}>{Math.round(progress)}%</div>
+                                                <span className="pct">{Math.round(progress)}%</span>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                            <div>
-                                                <div style={{ fontSize: '10px', color: '#94A3B8' }}>Principal Balance</div>
-                                                <div style={{ fontSize: '16px', fontWeight: 800 }}>₹{loan.outstandingBalance.toLocaleString('en-IN')}</div>
+                                        <div className="card-mid">
+                                            <div className="stat">
+                                                <span className="lbl">Principal Balance</span>
+                                                <span className="val">₹{loan.outstandingBalance.toLocaleString('en-IN')}</span>
                                             </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '10px', color: '#94A3B8' }}>Monthly EMI</div>
-                                                <div style={{ fontSize: '16px', fontWeight: 800 }}>₹{loan.emi.toLocaleString('en-IN')}</div>
+                                            <div className="stat align-right">
+                                                <span className="lbl">Monthly EMI</span>
+                                                <span className="val primary">₹{loan.emi.toLocaleString('en-IN')}</span>
                                             </div>
                                         </div>
-                                        <button style={{ width: '100%', background: '#F8FAFC', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>Manage Portfolio</button>
+                                        <button className="manage-btn">Manage Portfolio</button>
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
 
-                    {/* Stress Analyzer & Simulator */}
-                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #EDF2F7' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                            <ShieldCheck size={18} color="#FF8A00" />
-                            <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>Stress Analyzer & Simulator</h3>
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>EMI-TO-INCOME RATIO</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '24px', alignItems: 'center' }}>
-                            <div style={{ position: 'relative', width: '120px', height: '120px' }}>
-                                <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                                    <circle cx="60" cy="60" r="50" fill="none" stroke="#F1F5F9" strokeWidth="12" />
-                                    <circle cx="60" cy="60" r="50" fill="none" stroke={dtiRatio > 35 ? '#FF4D4D' : '#19E680'} strokeWidth="12" strokeDasharray={`${dtiRatio * 3.14} 314`} />
-                                </svg>
-                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '24px', fontWeight: 800 }}>{dtiRatio}%</div>
-                                    <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 700 }}>DTI RATIO</div>
-                                </div>
+                    {/* Stress Analyzer */}
+                    <div className="section-wrap">
+                        <div className="analyzer-card glassy">
+                            <div className="card-header">
+                                <ShieldCheck size={20} className="icon-gold" />
+                                <h3>Stress Analyzer & Simulator</h3>
                             </div>
-                            <div>
-                                <div style={{ fontSize: '12px', fontWeight: 700, color: dtiRatio > 35 ? '#FF4D4D' : '#19E680', marginBottom: '8px' }}>
-                                    CURRENT: {dtiRatio}%
-                                </div>
-                                <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '12px', fontSize: '11px', color: '#64748B', marginBottom: '12px' }}>
-                                    Your debt capacity allows for an additional EMI of up to ₹65,000 while remaining in the green zone.
-                                </div>
-                                <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '12px' }}>
-                                    <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '8px' }}>PREPAYMENT SIMULATOR</div>
-                                    <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>One-time Prepay:</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
-                                        <span style={{ fontSize: '16px', fontWeight: 800 }}>₹</span>
-                                        <input type="number" value={prepayAmount} onChange={e => setPrepayAmount(e.target.value)} style={{ border: 'none', background: 'transparent', fontSize: '16px', fontWeight: 800, width: '100%', outline: 'none' }} />
+                            <div className="analyzer-body">
+                                <div className="gauge-wrap">
+                                    <div className="big-gauge">
+                                        <svg width="140" height="140" viewBox="0 0 140 140">
+                                            <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+                                            <circle
+                                                cx="70" cy="70" r="60" fill="none"
+                                                stroke={dtiRatio > 35 ? '#ef4444' : '#22c55e'}
+                                                strokeWidth="10" strokeDasharray={`${dtiRatio * 3.77} 377`}
+                                                strokeLinecap="round"
+                                                style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                                            />
+                                        </svg>
+                                        <div className="gauge-text">
+                                            <span className="pct">{dtiRatio}%</span>
+                                            <span className="lbl">DTI RATIO</span>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: '11px', marginBottom: '4px' }}>
-                                        <span style={{ color: '#19E680', fontWeight: 700 }}>✓</span> Tenure Reduced: <strong>{tenureReduced} Months</strong>
+                                </div>
+                                <div className="analyzer-details">
+                                    <div className="health-note">
+                                        <Info size={14} />
+                                        <span>Your debt capacity allows for an additional EMI of up to ₹65,000.</span>
                                     </div>
-                                    <div style={{ fontSize: '11px' }}>
-                                        <span style={{ color: '#19E680', fontWeight: 700 }}>✓</span> Interest Saved: <strong>₹{interestSaved.toLocaleString('en-IN')}</strong>
+                                    <div className="simulator-box">
+                                        <span className="sim-lbl">PREPAYMENT SIMULATOR</span>
+                                        <div className="sim-input-row">
+                                            <span className="curr">₹</span>
+                                            <input
+                                                type="number" value={prepayAmount}
+                                                onChange={e => setPrepayAmount(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="sim-results">
+                                            <div className="res"><CheckCircle2 size={12} className="green" /> Tenure Reduced: <strong>{tenureReduced} Months</strong></div>
+                                            <div className="res"><CheckCircle2 size={12} className="green" /> Interest Saved: <strong>₹{interestSaved.toLocaleString('en-IN')}</strong></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </main>
 
-                    {/* Credit Card EMIs */}
-                    <div style={{ marginTop: '24px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px' }}>CREDIT CARD EMIS (SHORT TENURE)</h3>
-                        <div style={{ background: '#19E680', color: 'white', padding: '12px 20px', borderRadius: '12px', fontSize: '12px', fontWeight: 700, marginBottom: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <CheckCircle2 size={16} /> CREDIT SHIELD ACTIVE
-                        </div>
-                        <div style={{ display: 'grid', gap: '12px' }}>
-                            {[{ item: 'Tech Infrastructure Upgrade', desc: 'Amazon Corporate Business Amex • NO-COST EMI', amount: 12500, badge: 'NO-COST EMI' }, { item: 'Office Furniture', desc: 'Merchant: IKEA • SBI Credit Card', amount: 4800, badge: '0% DEAL' }].map((emi, idx) => (
-                                <div key={idx} style={{ background: 'white', borderRadius: '16px', padding: '20px', border: '1px solid #EDF2F7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                        <div style={{ width: '48px', height: '48px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <CreditCard size={24} color="#0076F5" />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: '14px', fontWeight: 800 }}>{emi.item}</div>
-                                            <div style={{ fontSize: '11px', color: '#64748B' }}>{emi.desc}</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '18px', fontWeight: 800 }}>₹{emi.amount.toLocaleString('en-IN')}mo</div>
-                                        <div style={{ fontSize: '10px', background: emi.badge.includes('NO-COST') ? '#E3F5FF' : '#FFE8CC', color: emi.badge.includes('NO-COST') ? '#0076F5' : '#FF8A00', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, display: 'inline-block' }}>{emi.badge}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column */}
-                <div>
+                {/* --- Right Column --- */}
+                <aside className="loans-aside">
                     {/* EMI Audit Trail */}
-                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #EDF2F7', marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '16px' }}>EMI AUDIT TRAIL</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {[{ name: 'Mortgage EMI (HDFC)', amount: 72400, type: 'Pay Now', color: '#0076F5' }, { name: 'Auto-debit', amount: 15000, type: 'Auto-debit', color: '#19E680' }, { name: 'Personal Credit (SBI)', amount: 28500, type: 'Manual', color: '#64748B' }].map((item, idx) => (
-                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#F8FAFC', borderRadius: '12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }}></div>
-                                        <div>
-                                            <div style={{ fontSize: '13px', fontWeight: 700 }}>{item.name}</div>
-                                            <div style={{ fontSize: '10px', color: '#94A3B8' }}>{item.type}</div>
+                    <div className="section-wrap">
+                        <div className="aside-card glassy">
+                            <h3>EMI Audit Trail</h3>
+                            <div className="audit-list">
+                                {[
+                                    { name: 'Mortgage EMI (HDFC)', amount: 72400, type: 'Pay Now', color: '#0076F5' },
+                                    { name: 'Auto-debit (Car)', amount: 15000, type: 'Scheduled', color: '#22c55e' },
+                                    { name: 'Personal Loan (SBI)', amount: 28500, type: 'Manual', color: '#8a99af' }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="audit-item">
+                                        <div className="item-left">
+                                            <span className="dot" style={{ backgroundColor: item.color }}></span>
+                                            <div className="info">
+                                                <span className="name">{item.name}</span>
+                                                <span className="type">{item.type}</span>
+                                            </div>
+                                        </div>
+                                        <div className="item-right">
+                                            <span className="amt">₹{item.amount.toLocaleString('en-IN')}</span>
+                                            {idx === 0 && <button className="mini-pay-btn">Pay Now</button>}
                                         </div>
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: '14px', fontWeight: 800 }}>₹{item.amount.toLocaleString('en-IN')}</div>
-                                        {idx === 0 && <button style={{ marginTop: '4px', background: '#0076F5', color: 'white', border: 'none', padding: '4px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>Pay Now</button>}
-                                        {idx === 1 && <div style={{ fontSize: '10px', color: '#94A3B8', textAlign: 'right' }}>Schedule</div>}
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
 
                     {/* Interest Analytics */}
-                    <div style={{ background: 'white', borderRadius: '20px', padding: '24px', border: '1px solid #EDF2F7' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                            <TrendingUp size={18} color="#0076F5" />
-                            <h3 style={{ fontSize: '14px', fontWeight: 800, margin: 0 }}>INTEREST ANALYTICS</h3>
-                        </div>
-                        <div style={{ position: 'relative', width: '180px', height: '180px', margin: '0 auto 20px' }}>
-                            <svg width="180" height="180" style={{ transform: 'rotate(-90deg)' }}>
-                                <circle cx="90" cy="90" r="70" fill="none" stroke="#F1F5F9" strokeWidth="20" />
-                                <circle cx="90" cy="90" r="70" fill="none" stroke="#0076F5" strokeWidth="20" strokeDasharray={`${principalPaid * 4.4} 440`} />
-                                <circle cx="90" cy="90" r="70" fill="none" stroke="#FF4D4D" strokeWidth="20" strokeDasharray={`${interestPaidPct * 4.4} 440`} strokeDashoffset={`-${principalPaid * 4.4}`} />
-                            </svg>
-                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                                <div style={{ fontSize: '28px', fontWeight: 800 }}>₹{principalPaid}L</div>
-                                <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>TOTAL PAID</div>
+                    <div className="section-wrap">
+                        <div className="aside-card glassy">
+                            <div className="card-header">
+                                <TrendingUp size={18} className="icon-blue" />
+                                <h3>Interest Analytics</h3>
                             </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#0076F5' }}></div>
-                                <span style={{ fontSize: '12px', flex: 1 }}>Principal Paid (60%)</span>
-                                <span style={{ fontWeight: 800 }}>₹{(principalPaid * 0.6).toFixed(2)}L</span>
+                            <div className="interest-gauge-wrap">
+                                <svg width="180" height="180" viewBox="0 0 180 180">
+                                    <circle cx="90" cy="90" r="75" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="15" />
+                                    <circle
+                                        cx="90" cy="90" r="75" fill="none" stroke="#0076F5" strokeWidth="15"
+                                        strokeDasharray="280 471" strokeLinecap="round"
+                                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                                    />
+                                    <circle
+                                        cx="90" cy="90" r="75" fill="none" stroke="#ef4444" strokeWidth="15"
+                                        strokeDasharray="120 471" strokeDashoffset="-280" strokeLinecap="round"
+                                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                                    />
+                                </svg>
+                                <div className="gauge-center">
+                                    <span className="val">₹11.04L</span>
+                                    <span className="lbl">TOTAL PAID</span>
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#FF4D4D' }}></div>
-                                <span style={{ fontSize: '12px', flex: 1 }}>Interest Paid (BRO) ({interestPaidPct}%)</span>
-                                <span style={{ fontWeight: 800, color: '#FF4D4D' }}>₹{(principalPaid * 0.4).toFixed(2)}L</span>
+                            <div className="interest-breakdown">
+                                <div className="b-item">
+                                    <span className="dot blue"></span>
+                                    <span className="txt">Principal Paid (60%)</span>
+                                    <span className="val">₹6.6L</span>
+                                </div>
+                                <div className="b-item">
+                                    <span className="dot red"></span>
+                                    <span className="txt">Interest Paid (40%)</span>
+                                    <span className="val red">₹4.4L</span>
+                                </div>
                             </div>
+                            <p className="insights-note">At current burn, you will pay ₹2.94L as future interest.</p>
                         </div>
-                        <p style={{ fontSize: '10px', color: '#64748B', marginTop: '16px' }}>At current burn, you will pay ₹2.94L (~40%) as interest over the remaining life of all loans.</p>
                     </div>
-                </div>
+                </aside>
             </div>
 
-            {/* Add Loan Modal */}
+            {/* --- Modals --- */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div style={{ width: '100%', maxWidth: '600px', background: 'white', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', animation: 'modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                        <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Add New Loan</h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ background: '#F8FAFC', border: 'none', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}>
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddLoan} style={{ padding: '32px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div className="modal-overlay">
+                    <div className="modal-content-glassy">
+                        <header className="modal-header-premium">
+                            <div className="h-left">
+                                <div className="icon-box"><ShieldCheck size={20} /></div>
                                 <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>LOAN TYPE</label>
-                                    <select value={newLoan.type} onChange={e => setNewLoan({ ...newLoan, type: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required>
-                                        <option>Home Loan</option>
-                                        <option>Car Loan</option>
-                                        <option>Personal Loan</option>
-                                        <option>Education Loan</option>
-                                        <option>Business Loan</option>
-                                        <option>Gold Loan</option>
+                                    <span className="subtitle">LOAN MANAGEMENT</span>
+                                    <h2>Add New Loan Account</h2>
+                                </div>
+                            </div>
+                            <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+                        </header>
+
+                        <form className="modal-form" onSubmit={handleAddLoan}>
+                            <div className="form-section">
+                                <label className="section-title">LENDER DETAILS</label>
+                                <div className="form-row">
+                                    <div className="input-group">
+                                        <label>LENDER / BANK</label>
+                                        <input type="text" placeholder="e.g. HDFC Bank" required value={newLoan.lender} onChange={e => setNewLoan({ ...newLoan, lender: e.target.value })} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>INTEREST RATE (%)</label>
+                                        <input type="number" step="0.1" placeholder="8.5" required value={newLoan.interestRate} onChange={e => setNewLoan({ ...newLoan, interestRate: e.target.value })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="input-group">
+                                    <label>TOTAL LOAN AMOUNT</label>
+                                    <div className="input-with-symbol">
+                                        <span className="symbol">₹</span>
+                                        <input type="number" placeholder="10,00,000" required value={newLoan.totalAmount} onChange={e => setNewLoan({ ...newLoan, totalAmount: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="input-group">
+                                    <label>MONTHLY EMI</label>
+                                    <div className="input-with-symbol">
+                                        <span className="symbol green">₹</span>
+                                        <input type="number" placeholder="25,000" required value={newLoan.emi} onChange={e => setNewLoan({ ...newLoan, emi: e.target.value })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="loan-type-selector">
+                                <label className="section-title">LOAN CATEGORY</label>
+                                <div className="pills">
+                                    {['Home Loan', 'Car Loan', 'Personal', 'Business'].map(t => (
+                                        <button key={t} type="button"
+                                            className={newLoan.type === t ? 'active' : ''}
+                                            onClick={() => setNewLoan({ ...newLoan, type: t })}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="completion-picker glassy">
+                                <div className="picker-header">
+                                    <Calendar size={16} />
+                                    <span>EXPECTED COMPLETION DATE</span>
+                                </div>
+                                <div className="picker-row">
+                                    <select value={newLoan.completionMonth} onChange={e => setNewLoan({ ...newLoan, completionMonth: Number(e.target.value) })}>
+                                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
+                                            <option key={m} value={i + 1}>{m}</option>
+                                        ))}
+                                    </select>
+                                    <select value={newLoan.completionYear} onChange={e => setNewLoan({ ...newLoan, completionYear: Number(e.target.value) })}>
+                                        {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() + i).map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
                                     </select>
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>LENDER / BANK</label>
-                                    <input type="text" placeholder="e.g. HDFC Bank" value={newLoan.lender} onChange={e => setNewLoan({ ...newLoan, lender: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>TOTAL LOAN AMOUNT (₹)</label>
-                                    <input type="number" placeholder="1000000" value={newLoan.totalAmount} onChange={e => setNewLoan({ ...newLoan, totalAmount: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>CURRENT OUTSTANDING (₹)</label>
-                                    <input type="number" placeholder="800000" value={newLoan.outstandingBalance} onChange={e => setNewLoan({ ...newLoan, outstandingBalance: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>MONTHLY EMI (₹)</label>
-                                    <input type="number" placeholder="25000" value={newLoan.emi} onChange={e => setNewLoan({ ...newLoan, emi: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>INTEREST RATE (%)</label>
-                                    <input type="text" placeholder="8.5%" value={newLoan.interestRate} onChange={e => setNewLoan({ ...newLoan, interestRate: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>TOTAL TENURE (MONTHS)</label>
-                                    <input type="number" placeholder="120" value={newLoan.tenureTotal} onChange={e => setNewLoan({ ...newLoan, tenureTotal: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', display: 'block', letterSpacing: '0.5px' }}>REMAINING MONTHS</label>
-                                    <input type="number" placeholder="96" value={newLoan.tenureLeft} onChange={e => setNewLoan({ ...newLoan, tenureLeft: e.target.value })} style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, outline: 'none' }} required />
-                                </div>
-                            </div>
-                            <button type="submit" style={{ width: '100%', padding: '18px', background: '#0076F5', color: 'white', border: 'none', borderRadius: '16px', fontSize: '16px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(0, 118, 245, 0.2)', transition: 'all 0.2s' }}>
+
+                            <button type="submit" className="submit-btn-premium">
                                 <ShieldCheck size={20} />
-                                <span>Add Loan Account</span>
+                                Add Loan Portfolio
                             </button>
                         </form>
                     </div>
                 </div>
             )}
 
+            {/* --- Styles --- */}
             <style dangerouslySetInnerHTML={{
                 __html: `
-                @keyframes modalPop {
-                    from { transform: scale(0.95); opacity: 0; }
-                    to { transform: scale(1); opacity: 1; }
+                .loans-premium-root {
+                    background: #060d19;
+                    min-height: 100vh;
+                    padding: 30px;
+                    color: white;
+                    font-family: 'Inter', sans-serif;
                 }
-                button:hover {
-                    opacity: 0.9;
-                    transform: translateY(-1px);
+
+                /* Hero Header */
+                .loans-hero {
+                    background: #0f172a;
+                    border-radius: 28px;
+                    padding: 40px;
+                    margin-bottom: 30px;
+                    position: relative;
+                    overflow: hidden;
+                    border: 2px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
                 }
-                `
-            }} />
+                .hero-bg-pattern { position: absolute; inset: 0; pointer-events: none; }
+                .glow-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.2; }
+                .orb-1 { top: -20%; left: -10%; width: 300px; height: 300px; background: #0057FF; }
+                .orb-2 { bottom: -20%; right: 0; width: 400px; height: 400px; background: #00D1FF; }
+                .orb-3 { top: 30%; right: 30%; width: 200px; height: 200px; background: #7C3AED; }
+
+                .hero-top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
+                .hero-badge { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; background: rgba(255,255,255,0.05); padding: 6px 14px; border-radius: 100px; border: 1.5px solid rgba(255,255,255,0.12); margin-bottom: 12px; }
+                .badge-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+                .hero-label { font-size: 14px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+                .hero-amount { font-size: 48px; font-weight: 900; margin-top: 5px; }
+                
+                .hero-countdown { text-align: right; }
+                .hero-countdown .lbl { font-size: 11px; opacity: 0.5; font-weight: 700; display: block; margin-bottom: 8px; }
+                .hero-countdown .timer { font-size: 20px; font-weight: 800; background: rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.12); }
+
+                .hero-stats { display: flex; gap: 60px; margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 30px; position: relative; z-index: 1; }
+                .h-stat .lbl { font-size: 11px; opacity: 0.5; font-weight: 600; text-transform: uppercase; }
+                .h-stat .val { font-size: 26px; font-weight: 800; margin: 4px 0; }
+                .h-stat .sub { font-size: 12px; opacity: 0.4; }
+                .divider { width: 1px; background: rgba(255,255,255,0.05); }
+
+                /* Layout Grids */
+                .loans-grid { display: grid; grid-template-columns: 1fr 340px; gap: 30px; }
+                .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+                .section-header h2 { font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+                .header-actions { display: flex; gap: 15px; align-items: center; }
+                
+                .add-btn { background: #0f172a; color: white; border: 1.5px solid rgba(255,255,255,0.12); padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+                .add-btn:hover { background: #1e293b; transform: translateY(-1px); }
+                .view-all { background: none; border: none; color: #0076F5; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+                /* Card Styles */
+                .glassy { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(25px); border: 1.5px solid rgba(255, 255, 255, 0.1); border-radius: 24px; transition: all 0.3s ease; }
+                .glassy:hover { border-color: rgba(255,255,255,0.15); box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+
+                .portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                .portfolio-card { padding: 24px; }
+                .portfolio-card .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+                .bank-lbl { font-size: 10px; color: #8a99af; font-weight: 700; letter-spacing: 1px; }
+                .portfolio-card h3 { font-size: 18px; font-weight: 800; margin: 5px 0; }
+                .rate-badge { font-size: 11px; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: inline-block; color: #8a99af; font-weight: 600; }
+                
+                .progress-gauge { position: relative; display: flex; align-items: center; justify-content: center; }
+                .progress-gauge .pct { position: absolute; font-size: 14px; font-weight: 800; }
+                
+                .card-mid { display: flex; justify-content: space-between; margin: 24px 0; }
+                .stat { display: flex; flex-direction: column; gap: 4px; }
+                .stat .lbl { font-size: 11px; color: #8a99af; font-weight: 600; }
+                .stat .val { font-size: 18px; font-weight: 800; }
+                .stat .val.primary { color: #0076F5; }
+                .manage-btn { width: 100%; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); color: white; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+                .manage-btn:hover { background: rgba(255,255,255,0.08); }
+
+                /* Stress Analyzer */
+                .analyzer-card { padding: 24px; }
+                .analyzer-card h3 { font-size: 15px; font-weight: 800; margin: 0; }
+                .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+                .analyzer-body { display: flex; gap: 40px; align-items: center; }
+                
+                .big-gauge { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+                .gauge-text { position: absolute; text-align: center; }
+                .gauge-text .pct { font-size: 32px; font-weight: 900; display: block; }
+                .gauge-text .lbl { font-size: 10px; color: #8a99af; font-weight: 800; margin-top: -2px; }
+
+                .analyzer-details { flex: 1; }
+                .health-note { display: flex; align-items: center; gap: 10px; background: rgba(34, 197, 94, 0.05); padding: 12px 16px; border-radius: 14px; border: 1.5px solid rgba(34, 197, 94, 0.15); color: #22c55e; font-size: 13px; font-weight: 500; margin-bottom: 20px; }
+                .simulator-box { background: rgba(0,0,0,0.15); padding: 20px; border-radius: 18px; border: 1.5px solid rgba(255,255,255,0.08); }
+                .sim-lbl { font-size: 10px; font-weight: 800; color: #8a99af; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 12px; }
+                .sim-input-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px; }
+                .sim-input-row .curr { font-size: 20px; font-weight: 800; color: #8a99af; }
+                .sim-input-row input { background: none; border: none; font-size: 20px; font-weight: 800; color: white; outline: none; width: 100%; }
+                .sim-results { display: flex; flex-direction: column; gap: 8px; }
+                .sim-results .res { font-size: 12px; display: flex; align-items: center; gap: 8px; font-weight: 500; opacity: 0.8; }
+                .sim-results .green { color: #22c55e; }
+
+                /* Aside Sections */
+                .aside-card { padding: 24px; }
+                .aside-card h3 { font-size: 14px; font-weight: 800; text-transform: uppercase; margin: 0 0 20px 0; }
+                .audit-list { display: flex; flex-direction: column; gap: 12px; }
+                .audit-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 14px; border-radius: 16px; border: 1.5px solid rgba(255,255,255,0.08); }
+                .item-left { display: flex; align-items: center; gap: 12px; }
+                .item-left .dot { width: 8px; height: 8px; border-radius: 50%; }
+                .item-left .name { display: block; font-size: 13px; font-weight: 700; color: #f1f5f9; }
+                .item-left .type { font-size: 11px; color: #8a99af; }
+                .item-right { text-align: right; }
+                .item-right .amt { font-size: 14px; font-weight: 800; display: block; }
+                .mini-pay-btn { margin-top: 6px; background: #0076F5; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; }
+
+                .interest-gauge-wrap { position: relative; display: flex; justify-content: center; margin: 10px 0; }
+                .gauge-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+                .gauge-center .val { font-size: 24px; font-weight: 900; display: block; }
+                .gauge-center .lbl { font-size: 9px; color: #8a99af; font-weight: 800; }
+
+                .interest-breakdown { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+                .b-item { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+                .b-item .dot { width: 8px; height: 8px; border-radius: 50%; }
+                .b-item .dot.blue { background: #0076F5; box-shadow: 0 0 8px #0076F5; }
+                .b-item .dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+                .b-item .txt { flex: 1; color: #8a99af; font-weight: 500; }
+                .b-item .val { font-weight: 800; }
+                .b-item .val.red { color: #ef4444; }
+                .insights-note { font-size: 11px; color: #8a99af; margin-top: 15px; text-align: center; font-style: italic; opacity: 0.7; }
+
+                /* Modal Styling */
+                .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+                .modal-content-glassy { background: #0f172a; border: 2px solid rgba(255,255,255,0.12); border-radius: 32px; width: 100%; max-width: 600px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,0.6); animation: slideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+                @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                
+                .modal-header-premium { background: linear-gradient(135deg, #0057FF, #00A3FF); padding: 25px 30px; display: flex; justify-content: space-between; align-items: center; }
+                .h-left { display: flex; align-items: center; gap: 15px; }
+                .icon-box { background: rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+                .subtitle { font-size: 10px; font-weight: 800; opacity: 0.7; letter-spacing: 1px; }
+                .modal-header-premium h2 { margin: 2px 0 0 0; font-size: 20px; font-weight: 800; }
+                .close-btn { background: none; border: none; color: white; cursor: pointer; opacity: 0.6; }
+                .close-btn:hover { opacity: 1; }
+
+                .modal-form { padding: 30px; }
+                .form-section { margin-bottom: 25px; }
+                .section-title { font-size: 11px; font-weight: 800; color: #8a99af; letter-spacing: 1px; display: block; margin-bottom: 15px; }
+                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                .input-group label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block; }
+                .input-group input, .input-group select { background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 12px; color: white; font-weight: 600; width: 100%; outline: none; box-sizing: border-box; transition: all 0.2s; }
+                .input-group input:focus { border-color: #0076F5; background: rgba(255,255,255,0.06); }
+                
+                .input-with-symbol { position: relative; }
+                .input-with-symbol .symbol { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-weight: 800; color: #0076F5; }
+                .input-with-symbol input { padding-left: 32px; }
+
+                .loan-type-selector { margin-bottom: 25px; }
+                .pills { display: flex; gap: 8px; flex-wrap: wrap; }
+                .pills button { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #8a99af; padding: 6px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+                .pills button.active { background: #0076F5; color: white; border-color: #0076F5; }
+
+                .completion-picker { padding: 20px; margin-bottom: 30px; }
+                .picker-header { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; color: #0076F5; margin-bottom: 15px; }
+                .picker-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+                .submit-btn-premium { width: 100%; background: linear-gradient(135deg, #0057FF, #0084FF); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; box-shadow: 0 10px 25px rgba(0, 87, 255, 0.3); transition: all 0.3s; }
+                .submit-btn-premium:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(0, 87, 255, 0.4); }
+
+                .icon-gold { color: #fbbf24; }
+                .icon-blue { color: #0076F5; }
+                .icon-green { color: #22c55e; }
+                .icon-purple { color: #7C3AED; }
+                .icon-red { color: #ef4444; }
+
+                /* Responsiveness */
+                @media (max-width: 1024px) {
+                    .loans-grid { grid-template-columns: 1fr; }
+                    .loans-aside { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+                }
+                @media (max-width: 768px) {
+                    .portfolio-grid { grid-template-columns: 1fr; }
+                    .loans-aside { grid-template-columns: 1fr; }
+                    .hero-stats { gap: 20px; flex-direction: column; }
+                    .hero-top { flex-direction: column; gap: 20px; }
+                    .hero-countdown { text-align: left; }
+                }
+            `}} />
         </div>
     );
 };

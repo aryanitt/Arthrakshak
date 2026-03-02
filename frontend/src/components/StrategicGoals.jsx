@@ -389,14 +389,19 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
             {/* ── Hero Banner ── */}
             <div className="sg-hero">
                 <div className="sg-hero-bg">
-                    <Shield className="sg-bg-icon sg-bg-shield" size={260} strokeWidth={0.8} />
-                    <Target className="sg-bg-icon sg-bg-target" size={140} strokeWidth={0.8} />
-                    <TrendingUp className="sg-bg-icon sg-bg-trend" size={90} strokeWidth={1} />
+                    <div className="glow-orb orb-1"></div>
+                    <div className="glow-orb orb-2"></div>
+                    <div className="glow-orb orb-3"></div>
+                    <Shield className="sg-bg-icon sg-bg-shield" size={260} strokeWidth={0.5} />
+                    <Target className="sg-bg-icon sg-bg-target" size={140} strokeWidth={0.5} />
                 </div>
                 <div className="sg-hero-content">
                     <div className="sg-hero-left">
                         <div className="sg-hero-top">
-                            <div className="sg-hero-badge"><Target size={13} /> Goal Management</div>
+                            <div className="sg-hero-badge">
+                                <Sparkles size={12} className="sparkle-icon" />
+                                <span>Goal Management</span>
+                            </div>
                         </div>
                         <h1 className="sg-hero-title">Your Financial Goals <span className="sg-emoji">🎯</span></h1>
                         <p className="sg-hero-sub">वित्तीय लक्ष्य • Track, manage and achieve your milestones</p>
@@ -419,17 +424,18 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
                     </div>
                     <div className="sg-hero-right">
                         <button className="sg-create-hero-btn" onClick={() => setIsModalOpen(true)}>
-                            <Plus size={16} strokeWidth={3} /> Create New Goal
+                            <Plus size={16} strokeWidth={3} />
+                            <span>Create New Goal</span>
                         </button>
-                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'nowrap', justifyContent: 'flex-end', alignItems: 'stretch' }}>
+                        <div className="sg-hero-cards-row">
                             {categoryData.length > 0 && (
                                 <div className="sg-hero-ring-card dist">
-                                    <div style={{ flexShrink: 0 }}>
+                                    <div className="ring-container">
                                         <CategoryDistributionPie data={categoryData} />
                                     </div>
                                     <div className="sg-dist-legend">
-                                        <div className="sg-ring-label" style={{ marginBottom: '6px' }}>CATEGORIES</div>
-                                        {categoryData.slice(0, 3).map((cat, i) => {
+                                        <div className="sg-ring-label">CATEGORIES</div>
+                                        {categoryData.slice(0, 2).map((cat, i) => {
                                             const pct = totalMonthlyEMI > 0 ? Math.round((cat.value / totalMonthlyEMI) * 100) : 0;
                                             const colors = ['#0076F5', '#10B981', '#FBB040', '#8B5CF6', '#EC4899'];
                                             return (
@@ -442,17 +448,17 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="sg-hero-ring-card">
+                            <div className="sg-hero-ring-card emi-card">
                                 <IncomeAllocationRing pct={incomeUsedPct} amount={totalMonthlyEMI} />
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <div className="sg-ring-label" style={{ marginBottom: '4px' }}>GOAL EMI / INCOME</div>
-                                    <div className="sg-ring-status" style={{ color: '#FBB040' }}>₹{fmt(totalMonthlyEMI)}<span style={{ fontSize: 13, opacity: 0.9 }}>/mo</span></div>
+                                <div className="card-info">
+                                    <div className="sg-ring-label">GOAL EMI / INCOME</div>
+                                    <div className="sg-ring-status orange">₹{fmt(totalMonthlyEMI)}<span className="unit">/mo</span></div>
                                 </div>
                             </div>
-                            <div className="sg-hero-ring-card">
+                            <div className="sg-hero-ring-card health-card">
                                 <HealthRing score={healthScore} color={healthColor} />
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <div className="sg-ring-label" style={{ marginBottom: '4px' }}>HEALTH SCORE</div>
+                                <div className="card-info">
+                                    <div className="sg-ring-label">HEALTH SCORE</div>
                                     <div className="sg-ring-status" style={{ color: healthColor }}>{healthStatus}</div>
                                 </div>
                             </div>
@@ -783,31 +789,61 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
             <style>{`
                 .sg-root { padding:0; display:flex; flex-direction:column; gap:20px; font-family:'Manrope',sans-serif; color:#0F172A; }
 
-                /* Hero */
+                /* Hero Section Redesign */
                 .sg-hero {
-                    background: linear-gradient(120deg,#0057FF 0%,#0084FF 55%,#00D1FF 100%);
-                    border-radius:24px; padding:36px 40px; color:white; position:relative; overflow:hidden;
-                    box-shadow:0 20px 40px rgba(0,87,255,0.25);
+                    background: #0f172a; 
+                    border-radius: 32px; 
+                    padding: 40px; 
+                    color: white; 
+                    position: relative; 
+                    overflow: hidden; 
+                    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1); 
+                    margin-bottom: 24px;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 }
-                /* Hero Banner */
-                .sg-hero { background:linear-gradient(135deg,#0076F5 0%,#0057FF 100%); border-radius:28px; padding:24px 40px; color:white; position:relative; overflow:hidden; box-shadow:0 15px 35px rgba(0,118,245,0.2); margin-bottom:24px; }
-                .sg-hero-bg { position:absolute; inset:0; pointer-events:none; z-index:0; }
-                .sg-bg-icon { position:absolute; opacity:0.07; color:white; }
-                .sg-bg-shield { right:-50px; bottom:-70px; transform:rotate(-10deg); }
-                .sg-bg-target { top:20px; right:160px; opacity:0.05; transform:rotate(15deg); }
-                .sg-bg-trend { bottom:30px; left:46%; opacity:0.04; }
-                .sg-hero-content { display:grid; grid-template-columns:1fr auto; gap:32px; align-items:center; position:relative; z-index:2; }
-                .sg-hero-badge { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); border-radius:100px; padding:4px 10px; font-size:10px; font-weight:800; display:inline-flex; align-items:center; gap:6px; margin-bottom:12px; backdrop-filter:blur(4px); }
-                .sg-hero-title { font-size:28px; font-weight:900; margin:0; letter-spacing:-0.02em; }
-                .sg-hero-sub { font-size:13px; opacity:0.8; margin-top:6px; font-weight:600; display:flex; align-items:center; gap:6px; }
+                .sg-hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+                .glow-orb { position: absolute; border-radius: 50%; filter: blur(100px); transform: translateZ(0); }
+                .orb-1 { top: -20%; left: -10%; width: 400px; height: 400px; background: #0057FF; opacity: 0.3; }
+                .orb-2 { bottom: -20%; right: -5%; width: 450px; height: 450px; background: #00D1FF; opacity: 0.25; }
+                .orb-3 { top: 30%; left: 30%; width: 250px; height: 250px; background: #7C3AED; opacity: 0.2; }
+                
+                .sg-bg-icon { position: absolute; opacity: 0.04; color: white; }
+                .sg-bg-shield { right: -40px; bottom: -60px; transform: rotate(-15deg); }
+                .sg-bg-target { top: 20px; right: 200px; transform: rotate(10deg); }
+                
+                .sg-hero-content { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; position: relative; z-index: 2; }
+                .sg-hero-badge { 
+                    background: rgba(255, 255, 255, 0.1); 
+                    border: 1px solid rgba(255, 255, 255, 0.15); 
+                    border-radius: 100px; 
+                    padding: 6px 14px; 
+                    font-size: 11px; 
+                    font-weight: 800; 
+                    display: inline-flex; 
+                    align-items: center; 
+                    gap: 8px; 
+                    margin-bottom: 16px; 
+                    backdrop-filter: blur(10px);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .sparkle-icon { color: #FFD700; animation: sparkleRotate 3s infinite linear; }
+                @keyframes sparkleRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-                .sg-hero-stats { display:flex; align-items:center; gap:32px; margin-top:24px; }
-                .sg-hero-stat { display:flex; flex-direction:column; gap:2px; }
-                .sg-hs-val { font-size:24px; font-weight:900; }
-                .sg-hs-green { color:#A7F3D0; }
-                .sg-hs-lbl { font-size:10px; font-weight:800; opacity:0.6; text-transform:uppercase; letter-spacing:0.5px; }
-                .sg-hero-stat-div { width:1px; height:32px; background:rgba(255,255,255,0.2); }
-                .sg-hero-right { display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+                .sg-hero-title { font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -1px; text-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+                .sg-emoji { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+                .sg-hero-sub { font-size: 14px; opacity: 0.7; margin-top: 8px; font-weight: 600; }
+
+                .sg-hero-stats { display: flex; align-items: center; gap: 40px; margin-top: 32px; }
+                .sg-hero-stat { display: flex; flex-direction: column; gap: 4px; transition: transform 0.3s; }
+                .sg-hero-stat:hover { transform: translateY(-2px); }
+                .sg-hs-val { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
+                .sg-hs-green { color: #34D399; }
+                .sg-hs-lbl { font-size: 11px; font-weight: 800; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+                .sg-hero-stat-div { width: 1px; height: 40px; background: rgba(255, 255, 255, 0.15); }
+
+                .sg-hero-right { display: flex; flex-direction: column; gap: 16px; align-items: flex-end; }
+                .sg-hero-cards-row { display: flex; gap: 12px; }
                 /* Pie Chart Card */
                 .sg-pie-card { background:#0F172A; border-radius:22px; padding:24px 28px; border:1px solid #1E293B; box-shadow:0 8px 32px rgba(15,23,42,0.25); }
                 .sg-pie-header { margin-bottom:20px; }
@@ -825,11 +861,42 @@ const StrategicGoals = ({ onPayment, monthlyIncome = 0 }) => {
                 .sg-pie-total-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-top:1px solid #1E293B; margin-top:4px; font-size:12px; color:#64748B; font-weight:700; }
                 .sg-pie-total-val { color:white; font-size:14px; font-weight:800; }
 
-                .sg-create-hero-btn { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:white; border-radius:12px; padding:10px 20px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.2s; white-space:nowrap; margin-bottom:12px; }
-                .sg-create-hero-btn:hover { background:rgba(255,255,255,0.25); transform:translateY(-1px); }
-                .sg-hero-ring-card { display:flex; align-items:center; gap:16px; background:rgba(255,255,255,0.12); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.2); border-radius:14px; padding:16px 20px; color:rgba(255,255,255,0.9); }
-                .sg-ring-label { font-size:10px; font-weight:800; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0px; }
-                .sg-ring-status { font-size:20px; font-weight:800; line-height:1.2; letter-spacing:-0.02em; }
+                .sg-create-hero-btn { 
+                    display: inline-flex; align-items: center; gap: 10px; 
+                    background: white; color: #0f172a; 
+                    border: none; border-radius: 16px; 
+                    padding: 14px 28px; font-size: 15px; font-weight: 800; 
+                    cursor: pointer; font-family: inherit; 
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+                    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1);
+                }
+                .sg-create-hero-btn:hover { background: #f1f5f9; transform: translateY(-3px) scale(1.02); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); }
+                .sg-create-hero-btn:active { transform: translateY(-1px); }
+
+                .sg-hero-ring-card { 
+                    display: flex; align-items: center; gap: 16px; 
+                    background: rgba(255, 255, 255, 0.05); 
+                    backdrop-filter: blur(20px); 
+                    -webkit-backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.1); 
+                    border-radius: 20px; 
+                    padding: 20px 24px; 
+                    color: white;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                }
+                .sg-hero-ring-card:hover { 
+                    background: rgba(255, 255, 255, 0.08); 
+                    transform: translateY(-4px); 
+                    border-color: rgba(255, 255, 255, 0.2);
+                    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+                }
+
+                .card-info { display: flex; flex-direction: column; justify-content: center; }
+                .sg-ring-label { font-size: 11px; font-weight: 800; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+                .sg-ring-status { font-size: 22px; font-weight: 900; line-height: 1; letter-spacing: -0.5px; }
+                .sg-ring-status .unit { font-size: 14px; opacity: 0.6; font-weight: 700; margin-left: 2px; }
+                .sg-ring-status.orange { color: #FBB040; }
 
                 /* Progress Banner */
                 .sg-progress-banner { background:white; border-radius:18px; padding:18px 24px; border:1px solid #EDF2F7; box-shadow:0 4px 16px rgba(0,0,0,0.04); display:flex; align-items:center; gap:24px; flex-wrap:wrap; }

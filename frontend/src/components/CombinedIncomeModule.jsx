@@ -392,6 +392,7 @@ const CombinedIncomeModule = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          border: 1.5px solid var(--border-subtle);
         }
         .legend-card.compact {
           flex-direction: column;
@@ -458,7 +459,7 @@ const CombinedIncomeModule = () => {
           border-radius: 16px;
           cursor: pointer;
           transition: all 0.2s;
-          border: 2px dashed var(--border-subtle);
+          border: 1.5px dashed var(--border-subtle);
         }
         .entry-card:hover {
           border-color: var(--primary-blue);
@@ -490,7 +491,7 @@ const CombinedIncomeModule = () => {
           padding: 16px;
           background: var(--bg-app);
           border-radius: 16px;
-          border: 1px solid var(--border-subtle);
+          border: 1.5px solid var(--border-subtle);
         }
         .animate-form {
           animation: slideDown 0.3s ease-out;
@@ -541,6 +542,7 @@ const CombinedIncomeModule = () => {
           border-radius: 14px;
           padding: 12px 16px;
           animation: slideDown 0.3s ease-out;
+          border: 1.5px solid var(--border-subtle);
         }
         .insights-header h4 {
           font-size: 12px;

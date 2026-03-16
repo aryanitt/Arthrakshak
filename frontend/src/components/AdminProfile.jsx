@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { User, Activity, Shield, LogOut, CheckCircle, Smartphone, Database, Globe, RefreshCcw, Save, Trash2, PlusCircle, MinusCircle, Wallet, Brain, Sparkles, TrendingUp, Target, CreditCard, Users, Briefcase, Zap, PieChart, BarChart3, Clock, ArrowRight, Bell, Settings, Languages, ChevronRight, HelpCircle } from 'lucide-react';
+import { User, Activity, Shield, LogOut, CheckCircle, Smartphone, Database, Globe, RefreshCcw, Save, Trash2, PlusCircle, MinusCircle, Wallet, Brain, Sparkles, TrendingUp, Target, CreditCard, Users, Briefcase, Zap, PieChart, BarChart3, Clock, ArrowRight, Bell, Settings, Languages, ChevronRight, HelpCircle, Fingerprint } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const AdminProfile = () => {

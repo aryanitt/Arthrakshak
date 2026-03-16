@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { Landmark, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, Plus, Sparkles, Trash2, Calendar, Shield, CreditCard, Wallet, Brain, Activity, User, Save, RefreshCcw, Bell, Settings, Languages, HelpCircle, LogOut } from 'lucide-react';
+import { Landmark, TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Sparkles, Trash2, Calendar, Shield, CreditCard, Wallet, Brain, Activity, User, Save, RefreshCcw, Bell, Settings, Languages, HelpCircle, LogOut, ShieldCheck, Info, CheckCircle2 } from 'lucide-react';
 
 const LoansModule = ({ onPayment, balance }) => {
     const [loans, setLoans] = useState([]);

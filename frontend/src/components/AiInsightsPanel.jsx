@@ -15,8 +15,8 @@ const AiInsightsPanel = ({ goals = [] }) => {
     // Find goal closest to completion (highest progress pct)
     const highestProgressGoal = goals.length > 0
         ? goals.reduce((prev, current) => {
-            const prevProgress = prev.targetAmount ? (prev.savedAmount / prev.targetAmount) : 0;
-            const currentProgress = current.targetAmount ? (current.savedAmount / current.targetAmount) : 0;
+            const prevProgress = prev.targetAmount ? (prev.currentBalance / prev.targetAmount) : 0;
+            const currentProgress = current.targetAmount ? (current.currentBalance / current.targetAmount) : 0;
             return (prevProgress > currentProgress) ? prev : current;
         })
         : null;

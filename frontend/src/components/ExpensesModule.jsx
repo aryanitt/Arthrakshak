@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { TrendingUp, PlusCircle, ArrowUpRight, ArrowDownRight, Briefcase, Zap, PieChart as PieChartIcon, BarChart3, Clock, ArrowRight, Receipt, ShoppingBag, Home, Coffee, Car, Plus, Sparkles, Filter, ChevronRight, Calendar, Search, Trash2, Download, ExternalLink, Activity, Info, Save, MessageSquare, Mic, Shield, Wallet, Brain, Fingerprint, Lock, CheckCircle, RefreshCcw, Bell, Settings, Languages, HelpCircle, Users, Building2, Star, Flame, Sun, Moon, FileText, Tag, DollarSign, Scissors, ArrowDownLeft, RefreshCw, AlertTriangle, Target } from 'lucide-react';
-import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { TrendingUp, PlusCircle, ArrowUpRight, ArrowDownRight, Briefcase, Zap, PieChart as PieChartIcon, BarChart3, Clock, ArrowRight, Receipt, ShoppingBag, Home, Coffee, Car, Plus, Sparkles, Filter, ChevronRight, Calendar, Search, Trash2, Download, ExternalLink, Activity, Info, Save, MessageSquare, Mic, Shield, Wallet, Brain, Fingerprint, Lock, CheckCircle, RefreshCcw, Bell, Settings, Languages, HelpCircle, Users, Building2, Star, Flame, Sun, Moon, FileText, Tag, DollarSign, Scissors, ArrowDownLeft, RefreshCw, AlertTriangle, Target, X } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 // ─── ENTITY DEFINITIONS ───
 const ENTITIES = [
@@ -474,11 +474,11 @@ const ExpensesModule = ({ onBack }) => {
                         <div className="cat-grid">
                             <div className="cat-chart-wrap">
                                 <ResponsiveContainer width="100%" height={200}>
-                                    <PieChart>
+                                    <RechartsPieChart>
                                         <Pie data={data.catBreakdown} innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value">
                                             {data.catBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                                         </Pie>
-                                    </PieChart>
+                                    </RechartsPieChart>
                                 </ResponsiveContainer>
                                 <div className="cat-center">
                                     <span className="cat-total">₹{data.totalExpense.toLocaleString()}</span>

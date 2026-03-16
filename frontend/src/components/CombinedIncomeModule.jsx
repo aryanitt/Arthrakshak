@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { TrendingUp, PlusCircle, ArrowUpRight, ArrowDownRight, Briefcase, Zap, PieChart, BarChart3, Clock, ArrowRight, RefreshCcw, Save, Trash2, Wallet, Brain, Sparkles, Target, CreditCard, Users, Shield, Bell, Settings, Search, Menu, X, CheckCircle, Info, Calculator, Download, Calendar, ExternalLink, Activity, MinusCircle, User, Zap as ZapIcon, LogOut, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import { TrendingUp, PlusCircle, ArrowUpRight, ArrowDownRight, Briefcase, Zap, PieChart as PieChartIcon, BarChart3, Clock, ArrowRight, RefreshCcw, Save, Trash2, Wallet, Brain, Sparkles, Target, CreditCard, Users, Shield, Bell, Settings, Search, Menu, X, CheckCircle, Info, Calculator, Download, Calendar, ExternalLink, Activity, MinusCircle, User, Zap as ZapIcon, LogOut, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 const CombinedIncomeModule = () => {

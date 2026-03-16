@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, ChevronRight, Activity, Zap, Brain, Sparkles } from 'lucide-react';
+import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, ChevronRight, Activity, Zap, Brain, Sparkles, Briefcase, Landmark, Coffee, ShoppingCart, Home, TrendingUp } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const TransactionHistory = ({ onViewAll }) => {

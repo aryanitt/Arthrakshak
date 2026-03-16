@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, Calendar, Download, Trash2, PieChart, Activity, Zap, Brain, Sparkles, Wallet, CreditCard, ChevronDown, ChevronUp, Check, ExternalLink, Info } from 'lucide-react';
+import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, Calendar, Download, Trash2, PieChart, Activity, Zap, Brain, Sparkles, Wallet, CreditCard, ChevronDown, ChevronUp, Check, ExternalLink, Info, Briefcase, Landmark, Coffee, ShoppingCart, Home, TrendingUp } from 'lucide-react';
 
 const TransactionsPage = () => {
     const [transactions, setTransactions] = useState([]);

@@ -51,7 +51,6 @@ function App() {
       const clientDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const res = await axios.get(`${API_BASE_URL}/financial-summary?clientDate=${clientDate}`);
       setFinancials(res.data);
-      // Use backend-calculated total balance
       if (typeof res.data.totalBalance === 'number') {
         setMainBalance(res.data.totalBalance);
       }
@@ -63,9 +62,6 @@ function App() {
   const handleNavigate = (label) => {
     setActiveMenu(label);
     if (window.innerWidth <= 1024) {
-      setIsSidebarOpen(false);
-    } else {
-      // User explicitly asked for sidebar to disappear on click
       setIsSidebarOpen(false);
     }
   };
@@ -202,12 +198,8 @@ function App() {
             ) : (
               <div className="base-card" style={{ padding: '60px', textAlign: 'center' }}>
                 <h2 style={{ color: 'var(--primary-blue)', marginBottom: '16px' }}>{activeMenu} Module</h2>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
-                  We are currently optimizing the {activeMenu} experience for you.
-                </p>
                 <button
                   className="primary-action-btn"
-                  style={{ width: 'auto', padding: '12px 32px' }}
                   onClick={() => handleNavigate('Dashboard')}
                 >
                   Back to Dashboard
@@ -233,15 +225,7 @@ function App() {
             <Mic size={20} />
           </button>
           <div className="v3-separator" />
-          <div className="ai-input-group-v3" onClick={() => {
-            if (aiSearchInput.trim()) {
-              setAiInitialQuery(aiSearchInput);
-              setIsAIChatOpen(true);
-              setAiSearchInput('');
-            } else {
-              setIsAIChatOpen(true);
-            }
-          }}>
+          <div className="ai-input-group-v3" onClick={() => setIsAIChatOpen(true)}>
             <div className="sparkle-icon">
               <ShieldCheck size={16} color="var(--primary-blue)" />
             </div>
@@ -275,14 +259,7 @@ function App() {
           right: 30px;
           z-index: 9999;
           display: ${isAIChatOpen ? 'none' : 'block'};
-          animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-
-        @keyframes slideUp {
-          from { transform: translateY(50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
         .search-pill-v3 {
           display: flex;
           align-items: center;
@@ -293,41 +270,7 @@ function App() {
           padding: 4px;
           width: 380px;
           box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .search-pill-v3:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-        }
-
-        .voice-trigger-v3 {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          width: 44px;
-          height: 44px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          border-radius: 50%;
-          transition: all 0.2s;
-          margin-left: 6px;
-        }
-
-        .voice-trigger-v3:hover {
-          background: #f1f5f9;
-          color: var(--primary-blue);
-        }
-
-        .v3-separator {
-          width: 1px;
-          height: 24px;
-          background: #e2e8f0;
-          margin: 0 8px;
-        }
-
         .ai-input-group-v3 {
           flex: 1;
           display: flex;
@@ -338,13 +281,7 @@ function App() {
           padding: 0 16px;
           gap: 12px;
           cursor: pointer;
-          transition: all 0.3s;
         }
-
-        .ai-input-group-v3:hover {
-          background: #0056b3;
-        }
-
         .sparkle-icon {
           display: flex;
           align-items: center;
@@ -354,7 +291,6 @@ function App() {
           height: 24px;
           border-radius: 50%;
         }
-
         .global-search-v3 {
           border: none;
           background: transparent;
@@ -363,33 +299,26 @@ function App() {
           font-size: 14px;
           color: #FFFFFF;
           outline: none;
-          cursor: text;
         }
-
-        .global-search-v3::placeholder {
-          color: rgba(255, 255, 255, 0.9);
-        }
-
-        .chat-hint-icon {
+        .voice-trigger-v3 {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          width: 44px;
+          height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
+          cursor: pointer;
         }
-
+        .v3-separator {
+          width: 1px;
+          height: 24px;
+          background: #e2e8f0;
+          margin: 0 8px;
+        }
         .left-column { display: flex; flex-direction: column; }
         .right-column { display: flex; flex-direction: column; }
-        
-        @media (max-width: 1240px) {
-          .dashboard-grid {
-            grid-template-columns: 1fr;
-          }
-          .floating-ai-bar-v3 {
-            bottom: 80px; /* Avoid bottom nav */
-            right: 20px;
-            width: calc(100% - 40px);
-            max-width: 380px;
-          }
-        }
       `}} />
 
       <BottomNav

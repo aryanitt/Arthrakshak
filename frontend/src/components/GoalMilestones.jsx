@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { TrendingUp, Target, Plus, ChevronRight, Sparkles, CheckCircle, Info, Calendar } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const GoalMilestones = ({ onViewGoals }) => {
   const [goals, setGoals] = useState([]);
@@ -8,7 +10,7 @@ const GoalMilestones = ({ onViewGoals }) => {
   useEffect(() => {
     const fetchPinnedGoals = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/goals');
+        const res = await axios.get(`${API_BASE_URL}/goals`);
         const pinned = res.data.filter(g => g.pinned).slice(0, 2);
         setGoals(pinned.map(g => ({
           name: g.title,

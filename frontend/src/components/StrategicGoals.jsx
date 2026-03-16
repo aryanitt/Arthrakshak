@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import * as XLSX from 'xlsx';
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip
@@ -15,7 +16,7 @@ import {
 
 import AiInsightsPanel from './AiInsightsPanel';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL_LOCAL = API_BASE_URL;
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
 const fmtCr = (n) => {

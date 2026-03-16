@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Bell, Search, Menu, X, ShieldCheck, TrendingUp } from 'lucide-react';
+import { Bell, Search, Menu, X, ShieldCheck, TrendingUp, Mic, MessageSquare } from 'lucide-react';
 
-const TopBar = ({ onToggleSidebar, onNavigate, isSidebarOpen, showProfile = true }) => {
-  const [showSuggestions, setShowSuggestions] = useState(false);
+const TopBar = ({ onToggleSidebar, onNavigate, isSidebarOpen, showProfile = true, onSearchAI, onVoiceAI }) => {
+  const [searchQuery, setSearchQuery] = useState('');
   return (
     <header className="unified-top-bar">
       <div className="bar-branding">
@@ -22,8 +22,18 @@ const TopBar = ({ onToggleSidebar, onNavigate, isSidebarOpen, showProfile = true
 
       <div className="bar-content">
         <div className="bar-left">
-          {/* Search Removed by Strategy Update */}
-          <div className="search-placeholder-spacer" style={{ flex: 1 }}></div>
+          <div className="search-container-v2">
+            <div className="search-input-wrapper">
+              <Search className="search-icon-v2" size={18} />
+              <input
+                type="text"
+                className="global-search-v2"
+                placeholder="Search treasury..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="actions-v2">

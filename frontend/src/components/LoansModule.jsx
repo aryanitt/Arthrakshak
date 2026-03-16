@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {
-    CreditCard, ShieldCheck, CheckCircle2, Clock,
-    TrendingUp, Calendar, DollarSign, Plus, X,
-    ArrowUpRight, ArrowDownRight, Info, AlertTriangle, Shield, Zap
-} from 'lucide-react';
+import { API_BASE_URL } from '../config';
+import { Landmark, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, Plus, Sparkles, Trash2, Calendar, Shield, CreditCard, Wallet, Brain, Activity, User, Save, RefreshCcw, Bell, Settings, Languages, HelpCircle, LogOut } from 'lucide-react';
 
 const LoansModule = ({ onPayment, balance }) => {
     const [loans, setLoans] = useState([]);
@@ -50,7 +47,7 @@ const LoansModule = ({ onPayment, balance }) => {
 
     const fetchLoans = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/loans');
+            const res = await axios.get(`${API_BASE_URL}/loans`);
             setLoans(res.data);
         } catch (err) {
             console.error(err);
@@ -74,7 +71,7 @@ const LoansModule = ({ onPayment, balance }) => {
                 tenureTotal: Number(newLoan.tenureTotal),
                 tenureLeft: Number(newLoan.tenureLeft)
             };
-            await axios.post('http://localhost:5000/api/loans', payload);
+            await axios.post(`${API_BASE_URL}/loans`, payload);
             setIsModalOpen(false);
             fetchLoans();
             setNewLoan({

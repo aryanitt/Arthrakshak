@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowUpRight, ArrowDownLeft, Coffee, ShoppingCart, Home, Briefcase, Landmark, TrendingUp } from 'lucide-react';
+import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, ChevronRight, Activity, Zap, Brain, Sparkles } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const TransactionHistory = ({ onViewAll }) => {
   const [transactions, setTransactions] = useState([]);
@@ -13,7 +14,7 @@ const TransactionHistory = ({ onViewAll }) => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/transactions');
+      const res = await axios.get(`${API_BASE_URL}/transactions`);
       setTransactions(res.data);
     } catch (e) {
       console.error("Error fetching transactions:", e);
@@ -52,8 +53,8 @@ const TransactionHistory = ({ onViewAll }) => {
   return (
     <div className="base-card transaction-history">
       <div className="header flex-between" style={{ marginBottom: '20px' }}>
-        <h3>Transaction History</h3>
-        <button className="view-link" onClick={onViewAll}>View All →</button>
+        <h3 className="recent-txns-title">RECENT TRANSACTIONS</h3>
+        <button className="view-all-link" onClick={onViewAll}>View All</button>
       </div>
 
       <div className="txn-list">
@@ -62,15 +63,15 @@ const TransactionHistory = ({ onViewAll }) => {
             No transactions yet.
           </div>
         ) : (
-          transactions.slice(0, 7).map((txn) => (
-            <div key={txn._id} className="txn-item">
+          transactions.slice(0, 6).map((txn) => (
+            <div key={txn._id} className="txn-item" onClick={onViewAll} title="Click to view all transactions">
               <div className="txn-left">
                 <div className="txn-icon" style={{ background: getBgColor(txn), color: getColor(txn) }}>
                   {getIcon(txn)}
                 </div>
                 <div className="txn-info">
                   <span className="txn-title">{txn.title}</span>
-                  <span className="txn-date">{formatDate(txn.date)}</span>
+                  <span className="txn-date">{formatDate(txn.date)} • UPI</span>
                 </div>
               </div>
               <div className={`txn-amount ${txn.type === 'expense' ? 'debit' : 'credit'}`}>
@@ -83,72 +84,83 @@ const TransactionHistory = ({ onViewAll }) => {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .transaction-history h3 {
-          font-size: 18px;
+        .transaction-history {
+            padding: 24px 32px !important;
+        }
+        .recent-txns-title {
+          font-size: 16px !important;
+          font-weight: 800 !important;
+          color: #0F172A !important;
+          letter-spacing: 0.5px;
+        }
+        .view-all-link {
+          background: none;
+          border: none;
+          color: #0076F5;
+          font-size: 14px;
           font-weight: 700;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        .view-all-link:hover {
+          opacity: 0.7;
         }
         .txn-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
         }
         .txn-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 0;
-          border-bottom: 1px solid var(--border-subtle);
+          padding: 12px 0;
+          cursor: pointer;
+          transition: transform 0.2s ease;
         }
-        .txn-item:last-child {
-          border-bottom: none;
+        .txn-item:hover {
+          transform: translateX(4px);
         }
         .txn-left {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
         }
         .txn-icon {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 700;
-          font-size: 18px;
+          transition: all 0.2s;
         }
         .txn-info {
           display: flex;
           flex-direction: column;
+          gap: 2px;
         }
         .txn-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--text-main);
+          font-size: 15px;
+          font-weight: 700;
+          color: #0F172A;
+          text-transform: capitalize;
         }
         .txn-date {
-          font-size: 11px;
-          font-weight: 500;
-          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 600;
+          color: #94A3B8;
         }
         .txn-amount {
-          font-size: 14px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: -0.2px;
         }
         .txn-amount.credit {
-          color: var(--accent-green);
+          color: #19E680;
         }
         .txn-amount.debit {
-          color: var(--accent-red);
-          font-weight: 800;
-        }
-        .view-link {
-          background: none;
-          border: none;
-          color: var(--primary-blue);
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
+          color: #FF4D4D;
         }
       `}} />
     </div>

@@ -41,6 +41,8 @@ const HeroBalanceCard = ({ balance, financials, onNavigate }) => {
             <div className="cc-type">ARTH</div>
           </div>
           <div className="cc-middle">
+            <div className="cc-label">TOTAL BALANCE</div>
+            <div className="cc-balance">₹{balance.toLocaleString()}</div>
             <div className="cc-number">**** **** **** 8421</div>
           </div>
           <div className="cc-bottom">
@@ -261,14 +263,33 @@ const HeroBalanceCard = ({ balance, financials, onNavigate }) => {
           -webkit-text-fill-color: transparent;
         }
         .cc-middle {
-          margin-top: 20px;
+          margin-top: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .cc-label {
+          font-size: 10px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.6);
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        .cc-balance {
+          font-size: 32px;
+          font-weight: 900;
+          color: white;
+          letter-spacing: -1px;
+          line-height: 1;
+          margin-bottom: 8px;
+          text-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .cc-number {
           font-family: 'Courier New', Courier, monospace;
-          font-size: 20px;
+          font-size: 16px;
           font-weight: 600;
-          letter-spacing: 4px;
-          color: white;
+          letter-spacing: 3px;
+          color: rgba(255,255,255,0.8);
           text-shadow: 0 2px 4px rgba(0,0,0,0.6);
         }
         .cc-bottom {

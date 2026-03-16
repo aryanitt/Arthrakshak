@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowUpRight, ArrowDownLeft, Coffee, ShoppingCart, Home, Briefcase, Landmark, TrendingUp, Download, Calendar, Filter } from 'lucide-react';
+import { API_BASE_URL } from '../config';
+import { Receipt, ArrowUpRight, ArrowDownRight, Search, Filter, Calendar, Download, Trash2, PieChart, Activity, Zap, Brain, Sparkles, Wallet, CreditCard, ChevronDown, ChevronUp, Check, ExternalLink, Info } from 'lucide-react';
 
 const TransactionsPage = () => {
     const [transactions, setTransactions] = useState([]);
@@ -15,7 +16,7 @@ const TransactionsPage = () => {
 
     const fetchTransactions = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/transactions');
+            const res = await axios.get(`${API_BASE_URL}/transactions`);
             setTransactions(res.data);
         } catch (e) {
             console.error('Error fetching transactions:', e);

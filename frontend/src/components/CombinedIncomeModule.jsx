@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
+import { TrendingUp, PlusCircle, ArrowUpRight, ArrowDownRight, Briefcase, Zap, PieChart, BarChart3, Clock, ArrowRight, RefreshCcw, Save, Trash2, Wallet, Brain, Sparkles, Target, CreditCard, Users, Shield, Bell, Settings, Search, Menu, X, CheckCircle, Info, Calculator, Download, Calendar, ExternalLink, Activity, MinusCircle, User, Zap as ZapIcon, LogOut, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Plus, TrendingUp, Briefcase, Landmark } from 'lucide-react';
 
 const CombinedIncomeModule = () => {
   const [timePeriod, setTimePeriod] = useState('Month');
@@ -25,7 +26,9 @@ const CombinedIncomeModule = () => {
 
   const fetchSummary = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/financial-summary');
+      const now = new Date();
+      const clientDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const res = await axios.get(`${API_BASE_URL}/financial-summary?clientDate=${clientDate}`);
       setSummary(res.data);
     } catch (e) {
       console.error("Error fetching summary:", e);
@@ -35,11 +38,13 @@ const CombinedIncomeModule = () => {
   const handleAddExpense = async () => {
     if (!amount) return;
     try {
-      await axios.post('http://localhost:5000/api/transactions', {
-        title: category === 'Custom' ? customCategory : category,
+      await axios.post(`${API_BASE_URL}/expenses`, {
+        notes: category === 'Custom' ? customCategory : category,
         amount: Number(amount),
-        type: 'expense',
-        category: category === 'Custom' ? customCategory : category
+        category: category === 'Custom' ? customCategory : category,
+        entity: 'personal', // Dashboard entries defaults to personal for now
+        date: new Date().toISOString().split('T')[0],
+        paymentMode: 'UPI'
       });
       setAmount('');
       setCategory('');
@@ -56,7 +61,7 @@ const CombinedIncomeModule = () => {
   const handleAddPassive = async () => {
     if (!amount || !source) return;
     try {
-      await axios.post('http://localhost:5000/api/transactions', {
+      await axios.post(`${API_BASE_URL}/transactions`, {
         title: source,
         amount: Number(amount),
         type: 'passive-income',

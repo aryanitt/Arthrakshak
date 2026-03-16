@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {
-    User,
-    Shield,
-    Settings,
-    Bell,
-    HelpCircle,
-    LogOut,
-    ChevronRight,
-    Languages,
-    Database,
-    Fingerprint,
-    Wallet,
-    Save
-} from 'lucide-react';
+import { User, Activity, Shield, LogOut, CheckCircle, Smartphone, Database, Globe, RefreshCcw, Save, Trash2, PlusCircle, MinusCircle, Wallet, Brain, Sparkles, TrendingUp, Target, CreditCard, Users, Briefcase, Zap, PieChart, BarChart3, Clock, ArrowRight, Bell, Settings } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const AdminProfile = () => {
     const [fixedIncome, setFixedIncome] = useState('');
@@ -27,8 +15,8 @@ const AdminProfile = () => {
     const fetchSettings = async () => {
         try {
             const [incomeRes, balanceRes] = await Promise.allSettled([
-                axios.get('http://localhost:5000/api/settings/fixedActiveIncome'),
-                axios.get('http://localhost:5000/api/settings/startingBalance')
+                axios.get(`${API_BASE_URL}/settings/fixedActiveIncome`),
+                axios.get(`${API_BASE_URL}/settings/startingBalance`)
             ]);
             if (incomeRes.status === 'fulfilled') setFixedIncome(incomeRes.value.data.value);
             if (balanceRes.status === 'fulfilled') setStartingBalance(balanceRes.value.data.value);
@@ -41,8 +29,8 @@ const AdminProfile = () => {
         setIsSaving(true);
         try {
             await Promise.all([
-                axios.post('http://localhost:5000/api/settings/fixedActiveIncome', { value: Number(fixedIncome) }),
-                axios.post('http://localhost:5000/api/settings/startingBalance', { value: Number(startingBalance) })
+                axios.post(`${API_BASE_URL}/settings/fixedActiveIncome`, { value: Number(fixedIncome) }),
+                axios.post(`${API_BASE_URL}/settings/startingBalance`, { value: Number(startingBalance) })
             ]);
             window.dispatchEvent(new CustomEvent('transactionAdded'));
             alert("Financial settings saved successfully!");
